@@ -1,0 +1,94 @@
+﻿@using Apollo2.Sys.Windows
+@using Apollo2.Pages.Windows.Page
+@using Apollo2.Pages.Windows.Apps
+
+@if (WindowManager.activeWindow != null)
+{
+
+ @switch (WindowManager.activeWindow.WINDOWTYPE)
+ {
+
+   //Testing
+  case "Test":
+   <TestWindow para="WindowManager.activeWindow"></TestWindow>
+   break;
+  case "TestPage2":
+   <TestWindow para="WindowManager.activeWindow"></TestWindow>
+   break;
+
+   //Apps
+  case "IncidentsBoard":
+   <IncidentApp para="WindowManager.activeWindow"/>
+   break;
+  case "UnitsBoard":
+   <UnitsApp para="WindowManager.activeWindow" />
+   break;
+  case "SYSMANAGEMENT":
+   <SysManagementApp para="WindowManager.activeWindow" />
+   break;
+
+   //Pages
+   //Pages:Incident
+  case "INC":
+   <Inc para="WindowManager.activeWindow"/>
+   break;
+  case "NEWINC":
+   <NewInc para="WindowManager.activeWindow"/>
+   break;
+   
+   //Pages:Incident:Archive
+  case "Archive":
+   <IncidentsArchive para="WindowManager.activeWindow"/>
+   break;
+  case "ArchivedInc":
+   <ArchiveIncidentView para="WindowManager.activeWindow" />
+   break;
+
+
+   //Pages:Unit
+  case "UnitEdit":
+   <UnitEdit para="WindowManager.activeWindow"/>
+   break;
+  case "GenericUnitEdit":
+   <GenericUnitEdit para="WindowManager.activeWindow" />
+   break;
+  case "NewUnit":
+   <NewUnit para="WindowManager.activeWindow" />
+   break;
+  case "NewGenericUnit":
+   <NewGenericUnit para="WindowManager.activeWindow" />
+   break;
+   
+   //Pages:SystemManagement
+  case "EditUser":
+   <EditUser para="WindowManager.activeWindow" />
+   break;
+
+
+
+  default:
+   break;
+ }
+
+
+}
+else
+{
+ <div class="NAW">
+  No active window. Select an application from the top bar.
+ </div>
+}
+
+@code {
+ protected override void OnInitialized()
+ {
+  base.OnInitialized();
+  WindowManager.WindowChanged += handleWindowChangeEvent;
+ }
+
+ public void handleWindowChangeEvent(windowEvent windowEvent)
+ {
+  StateHasChanged();
+ }
+
+}

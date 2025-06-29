@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apollo2</title>
+  <base href="/" />
+  <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link href="Apollo2.styles.css" rel="stylesheet" />
+</head>
+
+
+
+<body>
+  <script>
+    window.enableHorizontalScroll = (elementId) => {
+      const container = document.getElementById(elementId);
+      if (!container) return;
+
+      container.addEventListener('wheel', function (e) {
+
+        // Prevent vertical scroll
+        e.preventDefault();
+        const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
+        const previous = container.scrollLeft;
+        container.scrollLeft += delta;
+        }, { passive: false }); // passive: false is required to call e.preventDefault()
+    };
+
+    window.drag = function (elementId, startX, startY) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      const headerRect = document.getElementById("HEADERCONTAINER").getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
+      const offsetX = startX - rect.left ;
+      const offsetY = startY - rect.top + headerRect.height;
+
+      function onMouseMove(e) {
+        if (e.clientY - offsetY < 0)
+          return;
+        el.style.left = (e.clientX - offsetX) + "px";
+        el.style.top = (e.clientY - offsetY) + "px";
+      }
+
+      function onMouseUp(e) {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      }
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    };
+
+
+    window.addEventListener("window-dropped", (e) => {
+      console.log("dropped.");
+    });
+
+  </script>
+  <div id="app">
+    <svg class="loading-progress">
+      <circle r="40%" cx="50%" cy="50%" />
+      <circle r="40%" cx="50%" cy="50%" />
+    </svg>
+    <div class="loading-progress-text"></div>
+  </div>
+
+  <div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+  </div>
+  <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>

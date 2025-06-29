@@ -1,0 +1,226 @@
+﻿@page "/Unauthorized/Login"
+@using Apollo2.Sys
+@using Apollo2.Shared.Sys
+@using Apollo2.Shared.Sys.Authentication
+@using Apollo2.Shared.Sys.User
+@using System.Timers;
+@using System.Text.RegularExpressions
+@inject NavigationManager _navi
+@inject HttpClient _http
+@inject SystemInformation _sys
+
+<PageTitle>APOLLO CAD :: LOGIN</PageTitle>
+
+<div class="Root">
+ <div class="Header">
+  <div class="HeaderLeft">
+  </div>
+  <div class="HeaderCenter">
+   APOLLO CAD
+  </div>
+  <div class="HeaderRight">
+   <div class="HeaderClock">
+    @time
+   </div>
+
+  </div>
+ </div>
+ <div class="Body">
+  <div class="LogonBox">
+
+   <div class="LogonElement">
+    <div class="LogonLabel">
+     System Address
+    </div>
+    <div class="LogonInput">
+     <input type="text" placeholder="System Address" @bind-value="system" />
+    </div>
+   </div>
+
+   <div class="LogonElement">
+    <div class="LogonLabel" >
+     Username
+    </div>
+    <div class="LogonInput">
+     <input type="text" placeholder="Username" @bind-value="username" />
+    </div>
+   </div>
+
+   <div class="LogonElement">
+    <div class="LogonLabel">
+     Password
+    </div>
+    <div class="LogonInput">
+     <input type="password" placeholder="Password" @bind-value="password" />
+    </div>
+   </div>
+
+   <button class="logonButton" @onclick="tryLogon">
+    Login
+   </button>
+
+  </div>
+  <div class="@returnMessageClasses">
+   @returnMessage
+  </div>
+ </div>
+</div>
+
+
+
+@code {
+
+ private string time = DateTime.Now.ToString("HH:mm:ss");
+ private string username = "";
+ private string password = "";
+ private string system = "";
+ private string returnMessageClasses = "logonReturnMessage";
+ private string returnMessage = "Welcome To Apollo CAD";
+ private bool debounce = false;
+
+
+ private void clock(Object? source, ElapsedEventArgs? e)
+ {
+  time = DateTime.Now.ToString("HH:mm:ss");
+  this.StateHasChanged();
+ }
+
+ protected async override Task OnInitializedAsync()
+ {
+  _navi.LocationChanged += LocationChanged;
+  SysTimers.secondTimer.Elapsed += clock;
+
+  if (await _sys.loadSavedData())
+  {
+   _navi.NavigateTo("/CAD");
+  }
+
+
+  base.OnInitialized();
+ }
+
+ void LocationChanged(object? sender, LocationChangedEventArgs e)
+ {
+  Dispose();
+ }
+
+ void Dispose()
+ {
+  _navi.LocationChanged -= LocationChanged;
+  SysTimers.secondTimer.Elapsed -= clock;
+ }
+
+ void go()
+ {
+  _navi.NavigateTo("/Unauthorized/Test");
+ }
+
+ private async Task tryLogon()
+ {
+  if (debounce) return;
+  debounce = true;
+
+  if (string.IsNullOrEmpty(system))
+  {
+   returnMessage = "System Address cannot be left blank.";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  Regex mustmatch = new Regex("^([a-z0-9]+((\\.[a-z0-9]+)?)+)(:[0-9]+)?$");
+  Match match = mustmatch.Match(system);
+
+  if (!match.Success)
+  {
+   returnMessage = "System Address: Please provide a valid URL.";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  if (string.IsNullOrEmpty(username))
+  {
+   returnMessage = "Username cannot be left blank.";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  if (string.IsNullOrEmpty(password))
+  {
+   returnMessage = "Password cannot be left blank.";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  string sysTemp = "https://" + system;
+
+
+  Token token = new Token(username, password);
+
+  returnMessage = $"Logging in as {username}@{system}";
+  returnMessageClasses = "logonReturnMessage";
+  StateHasChanged();
+
+  UserLoginResponse? ulr;
+  try
+  {
+   var resp = await _http.PostAsJsonAsync<Token>(sysTemp + "/API/Sys/User/Login", token);
+   ulr = await resp.Content.ReadFromJsonAsync<UserLoginResponse?>();
+   if (ulr == null)
+    throw new Exception("Invalid Response");
+  }
+  catch(Exception ex)
+  {
+   returnMessage = $"Unable to connect to server: {system}";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   Console.WriteLine(ex);
+   return;
+  }
+
+  if (ulr.successful == false)
+  {
+   returnMessage = $"{ulr.errorMessage}";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  if (ulr.successful)
+  {
+   if (ulr.errorMessage == "CHANGEPASSWORD")
+   {
+    token.hash = password;
+    SystemInformation.token = token;
+    SystemInformation.sysURL = system;
+    returnMessage = "Password Expired.";
+    _navi.NavigateTo("/Unauthorized/ChangePassword/expired");
+    return;
+   }
+   else
+    returnMessage = "Success!";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageSuccess";
+   StateHasChanged();
+   //debounce = false;
+
+   SystemInformation.token = token;
+   SystemInformation.session = ulr.session;
+   SystemInformation.sysURL = sysTemp;
+   await _sys.save();
+
+   _navi.NavigateTo("/CAD");
+   return;
+  }
+
+ }
+
+}

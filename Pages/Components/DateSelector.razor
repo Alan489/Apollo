@@ -1,0 +1,201 @@
+﻿@using Apollo2.Pages.Windows.Page
+@inject IJSRuntime JS
+
+<div class="ROOT"
+     id="dateSelector">
+
+ <div class="HEADER"
+ @onmousedown="startDrag">
+  <div class="TITLE">
+   Select Date
+  </div>
+  <div class="CONTROLS">
+   <button class="CLOSE" @onclick="cancel">Cancel</button>
+  </div>
+ </div>
+
+
+ <div class="BODY">
+  <div class="YEARCONTROL">
+   <button class="YEARBUTTON" @onclick="(MouseEventArgs mea) => {selected = selected.AddYears(-1);}">&lt;&lt;</button>
+   <div class="LABEL">
+    @year
+
+   </div>
+   <button class="YEARBUTTON" @onclick="(MouseEventArgs mea) => {selected = selected.AddYears(1);}">&gt;&gt;</button>
+  </div>
+  <div class="MONTHCONTROL">
+   <button class="MONTHBUTTON" @onclick="(MouseEventArgs mea) => {selected = selected.AddMonths(-1);}">&lt;</button>
+   <div class="LABEL">
+    @monthString
+   </div>
+   <button class="MONTHBUTTON" @onclick="(MouseEventArgs mea) => {selected = selected.AddMonths(1);}">&gt;</button>
+  </div>
+  <table>
+   <tr>
+    <th>
+     Su
+    </th>
+    <th>
+     Mo
+    </th>
+    <th>
+     Tu
+    </th>
+    <th>
+     We
+    </th>
+    <th>
+     Th
+    </th>
+    <th>
+     Fr
+    </th>
+    <th>
+     Sa
+    </th>
+   </tr>
+   @if ((RUNNER = 0) == 0) { }
+   @while (RUNNER < calendar.Count)
+   {
+    @if (RUNNER == 0)
+    {
+     <tr>
+      @if ((t = 0) == 0) { }
+      @while (calendar[RUNNER].weekday != t)
+      {
+       <td></td>
+       @if ((t++) == 0) { }
+      }
+
+      @while (calendar[RUNNER].weekday == t)
+      {
+       int index = RUNNER;
+       <td @onclick="() => select(index)">@(calendar[RUNNER].day)</td>
+       @if ((t++) == 0) { }
+       @if ((RUNNER++) == 0) { }
+      }
+
+     </tr>
+    }
+    else
+    {
+     <tr>
+      @if ((t=0) == 0) { }
+      @while (RUNNER < calendar.Count && calendar[RUNNER].weekday == t)
+      {
+       int index = RUNNER;
+       <td @onclick="() => select(index)">@(calendar[RUNNER].day)</td>
+       @if ((t++) == 0) { }
+       @if ((RUNNER++) == 0) { }
+      }
+      @if (RUNNER == calendar.Count)
+       @while(t < 7)
+       {
+        <td></td>
+        @if ((t++) == 0) { }
+       }
+     </tr>
+    }
+   }
+  </table>
+ </div>
+
+</div>
+
+
+@code {
+
+ [Parameter]
+ public EventCallback<DateOnly?> callback { get; set; }
+ [Parameter]
+ public required Dictionary<string, object> memory { get; set; }
+
+ private ElementReference root;
+
+ private int RUNNER = 0;
+ private int t = 0;
+
+ private DateTime selected
+ {
+  get
+  {
+   if (memory.ContainsKey("DSMEMDATE"))
+    return (DateTime)memory["DSMEMDATE"];
+   else
+    return DateTime.Now;
+  }
+  set
+  {
+   memory["DSMEMDATE"] = value;
+  }
+ }
+
+ private int year
+ {
+  get
+  {
+   return selected.Year;
+  }
+ }
+
+ private string monthString
+ {
+  get
+  {
+   return selected.ToString("MMMM");
+  }
+ }
+
+ private int month
+ {
+  get
+  {
+   return selected.Month;
+  }
+ }
+
+ private bool isDragging = false;
+
+ private List<CALVAL> calendar
+ {
+  get
+  {
+   List<CALVAL> ret = new List<CALVAL>();
+   DateTime curr = new DateTime(year, month, 1);
+   while (curr.Month == month)
+   {
+    ret.Add(new CALVAL(curr.Day, curr.DayOfWeek));
+    curr = curr.AddDays(1);
+   }
+   return ret;
+  }
+ }
+
+ private void select(int index)
+ {
+  DateOnly ret = new DateOnly(year, month, calendar[index].day);
+  callback.InvokeAsync(ret);
+ }
+
+ private struct CALVAL
+ {
+  public int day { get; }
+  public int weekday { get; }
+  public CALVAL(int day, DayOfWeek weekday)
+  {
+   this.day = day;
+   this.weekday = (int)weekday;
+  }
+ }
+ private void cancel()
+ {
+  callback.InvokeAsync(null);
+ }
+
+ private async Task startDrag(MouseEventArgs e)
+ {
+  await JS.InvokeVoidAsync("drag", "dateSelector", e.ClientX, e.ClientY);
+ }
+
+}

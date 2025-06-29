@@ -1,0 +1,118 @@
+﻿@using Apollo2.Sys.Windows
+
+<h3>@para.Title</h3>
+<button @onclick="closeMe">Click to close!</button>
+<button @onclick ="minimize">Click to minimize!</button>
+@if (para.Title == "Test")
+{
+ <div>
+  I am the root application.
+  Have a thingy and a button!
+  <div>
+   title
+   <input type="text" @bind="makeAPage" />
+  </div>
+  <div>
+   param
+   <input type="text" @bind="param" />
+  </div>
+  <button @onclick="goooooo"></button>
+ </div>
+} else
+{
+ <div>
+   I am a child page. I was created with the title: @para.Title<br>
+   And the param: @para.property
+  <div>
+   Memory Test
+   <input type="text" @bind="makeAPage" />
+  </div>
+ </div>
+}
+
+@code {
+ [Parameter]
+ public required Window para {get; set;}
+
+ private string _maker{get;set;}
+ private string _pararara{get;set;}
+
+ private string makeAPage {
+  get{
+   return _maker; 
+  }
+  set{
+   _maker = value;
+   para.memory["makeAPage"] = value;
+  }
+ }
+
+ private string param
+ {
+  get
+  {
+   return _pararara;
+  }
+  set
+  {
+   _pararara = value;
+   para.memory["param"] = value;
+  }
+ }
+
+ private void closeMe()
+ {
+  WindowManager.closePage(para);
+ }
+
+ private void minimize()
+ {
+  WindowManager.Minimize(para);
+ }
+
+ private void goooooo()
+ {
+  WindowManager.openPage("TestPage2", makeAPage, param);
+ }
+
+ private void onTextboxChange(ChangeEventArgs cea)
+ {
+
+ }
+
+ protected override void OnParametersSet()
+ {
+  base.OnParametersSet();
+  if (para.Title == "Test")
+  {
+   if (para.firstRender)
+   {
+    makeAPage = "";
+    param = "";
+    para.memory["makeAPage"] = "";
+    para.memory["param"] = "";
+    para.firstRender = false;
+   } else
+   {
+    makeAPage = para.memory["makeAPage"].ToString();
+    param = para.memory["param"].ToString();
+   }
+  }
+  else
+  {
+   if (para.firstRender)
+   {
+    makeAPage = "";
+    param = "";
+    para.memory["makeAPage"] = "";
+    para.firstRender = false;
+   }
+   else
+   {
+    makeAPage = para.memory["makeAPage"].ToString();
+   }
+  }
+ }
+
+
+}

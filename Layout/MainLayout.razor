@@ -1,0 +1,25 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager _navi
+@using Apollo2.Sys
+<div class="page">
+
+ <main>
+  <article class="content px-4">
+   @Body
+  </article>
+ </main>
+</div>
+
+@code {
+ protected override void OnAfterRender(bool firstRender)
+ {
+   if ((string.IsNullOrEmpty(SystemInformation.sysURL)
+        || SystemInformation.token == null
+        || SystemInformation.token.expiration < DateTime.UtcNow
+        || SystemInformation.session == null) &&
+        !_navi.Uri.Contains("/Unauthorized/"))
+    _navi.NavigateTo("/Unauthorized/Login");
+
+  base.OnAfterRender(firstRender);
+ }
+}

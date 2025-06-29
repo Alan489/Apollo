@@ -1,0 +1,14 @@
+﻿@page "/Unauthorized/Test"
+@inject NavigationManager _navi
+<div class="ooga">
+ ahdfsd
+</div>
+<button @onclick="go">adasdasdasdasd</button>
+
+
+@code {
+ private void go()
+ {
+  _navi.NavigateTo("/Unauthorized/Login");
+ }
+}

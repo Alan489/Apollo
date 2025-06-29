@@ -1,0 +1,265 @@
+﻿@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Pages.Components
+@using Apollo2.Sys
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.Data.Units
+@using Apollo2.Shared.Sys.User
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+
+<div class="IncsRoot">
+ <div class="IncsHeader">
+  <div class="TITLE">
+   CALL BOARD
+  </div>
+  <div class="CONTROLS">
+   <button class="DISCARD" @onclick="openArchive">Incident Archive</button>
+  </div>
+ </div>
+ <div class="IncsBody">
+  <div class="IncsContainer">
+   <table class="IncidentsTable">
+    <tr class="IncidentsTableHeader">
+     <td>Call Number</td>
+     <td>Details</td>
+     <td>Location</td>
+     <td>Updated</td>
+     <td>Opened</td>
+     <td>Attached Units</td>
+    </tr>
+    @if (Incidents.incidents != null && Incidents.incidents.Count != 0)
+    {
+     @foreach (Incident inc in Incidents.incidents)
+     {
+      <tr class="IncidentRow" @onclick="() => openIncident(inc)">
+       <td class="call_number">@inc.call_number</td>
+       <td class="call_details">@inc.call_details</td>
+       <td class="location">@inc.location</td>
+       <td class="updated @(((DateTime)(inc.updated ?? DateTime.MinValue)) < DateTime.Now.AddMinutes(-10) ? ((((DateTime)(inc.updated ?? DateTime.MinValue)) < DateTime.Now.AddMinutes(-15)) ? "ATTN" : "WRN" ): "")">@(((DateTime)(inc.updated ?? DateTime.MinValue)).ToString("HH:mm"))</td>
+       <td class="ts_opened">@(((DateTime)(inc.ts_opened ?? DateTime.MinValue)).ToString("HH:mm"))</td>
+       <td class=@(string.IsNullOrEmpty(inc.attachedUnits) ? "noAttachedUnits" : "attachedUnits")>@(string.IsNullOrEmpty(inc.attachedUnits) ? "None Attached" : inc.attachedUnits)</td>
+      </tr>
+     }
+    }
+    <tr class="IncidentsTableNewIncident">
+     <td colspan="6" @onclick="newInc">
+      New Incident
+     </td>
+    </tr>
+   </table>
+   @if (Incidents.incidents == null || Incidents.incidents.Count == 0)
+   {
+    <div class="TextError">
+     No active incidents.
+    </div>
+   }
+
+
+  </div>
+  <div class="IncsUnitOverview">
+   <div class="IncsUnitsHeader">
+    Units
+    @if (showAllUnits)
+    {
+     <button class="SHOWALLUNITS active" @onclick='(MouseEventArgs mea) => {showAllUnits = false;}'>
+      Hide Unavailable Units
+     </button>
+    }
+    else
+    {
+     <button class="SHOWALLUNITS inactive" @onclick='(MouseEventArgs mea) => {showAllUnits = true;}'>
+      Show Unavailable Units
+     </button>
+    }
+   </div>
+   <div class="IncsUnitContainer">
+    @foreach (UnitGlance ug in Units.units.Where(u => u.type == "Unit" && (u.status != "Out Of Service" || showAllUnits)))
+    {
+     <div class="@(getUnitStatusClass(ug.status))">
+      <div class="UNITINFO">
+       <div class="UNITID" style="color: @ug.color">
+        @ug.unit
+       </div>
+       <div class="BRANCH">
+        @ug.role
+       </div>
+      </div>
+
+      <div class="UNITDETAILS">
+       <div class="STATUS">
+        @ug.status
+       </div>
+       @if (!string.IsNullOrEmpty(ug.attachment))
+       {
+        <div class="ATTACHMENT" @onclick='() => openIncident(ug.incID)'>
+         INC#@ug.attachment
+        </div>
+       }
+       else
+       {
+        <div class="CHANGESTATUS @(statusUpdateUnit == ug.unit ? "CHANGING" : "")" @onclick="() => updateStatus(ug.unit)">
+         Update Unit Status
+         @if (statusUpdateUnit == ug.unit)
+         {
+          <StatusUpdator forUnit="@ug.unit" parent="@this" />
+         }
+        </div>
+       }
+
+      </div>
+
+
+     </div>
+    }
+   </div>
+  </div>
+ </div>
+</div>
+
+@code {
+
+ [Parameter]
+ public required Window para { get; set; }
+
+ private string statusUpdateUnit
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("STATUSUPDATE"))
+    return "";
+   return (string)para.memory["STATUSUPDATE"];
+  }
+  set
+  {
+   para.memory["STATUSUPDATE"] = value;
+  }
+ }
+
+ private bool showAllUnits
+ {
+  get
+  {
+   return para.memory.ContainsKey("SHOWALLUNITS");
+  }
+  set
+  {
+   if (value)
+    para.memory["SHOWALLUNITS"] = "YES";
+   else
+    if (showAllUnits)
+    para.memory.Remove("SHOWALLUNITS");
+
+   StateHasChanged();
+  }
+ }
+
+ private void close()
+ {
+  WindowManager.closePage(para);
+ }
+
+ private string getUnitStatusClass(string status)
+ {
+
+  return "UNITDIV " + status.Replace(" ", "");
+ }
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleWindowChange;
+  Incidents.incidentsUpdated += handleIncUpdated;
+  Units.unitsUpdated += handleIncUpdated;
+
+  await _incsService.reqUpdate();
+  await _unitsService.reqUpdate();
+ }
+
+ private void openIncident(int inc)
+ {
+  Incident? a = Incidents.incidents.FirstOrDefault(k => k.incident_id == inc);
+
+  if (a != null)
+   WindowManager.openPage("INC", "INC#" + a.call_number, "" + a.incident_id);
+ }
+
+ private void openIncident(Incident inc)
+ {
+  WindowManager.openPage("INC", "INC#" + inc.call_number, "" + inc.incident_id);
+ }
+
+ private void updateStatus(string unit)
+ {
+  if (statusUpdateUnit != unit)
+   statusUpdateUnit = unit;
+  else
+   statusUpdateUnit = "";
+  StateHasChanged();
+ }
+
+
+ //Status:
+ //0: OOS
+ //1: BUSY
+ //2: IS
+ // API/Units/Units/post/status/unit/status
+
+ public async Task statusSelected(string s, string un)
+ {
+
+  if (s == "Cancel")
+  {
+   StateHasChanged();
+   return;
+  }
+
+  int status = 0;
+
+  if (s == "In Service")
+   status = 2;
+  if (s == "Busy")
+   status = 1;
+
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Units/Units/post/status/{statusUpdateUnit}/{status}", SystemInformation.session);
+
+  UnitGlance? unit = Units.units.FirstOrDefault(u => u.unit == un);
+
+  if (unit != null)
+   unit.status = s;
+
+  statusUpdateUnit = "";
+  StateHasChanged();
+ }
+
+ private void handleIncUpdated()
+ {
+  StateHasChanged();
+ }
+
+ private async void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.type == windowEvent.WindowEventType.closed || we.type == windowEvent.WindowEventType.minimized)
+  {
+   WindowManager.WindowChanged -= handleWindowChange;
+   Incidents.incidentsUpdated -= handleIncUpdated;
+   Units.unitsUpdated -= handleIncUpdated;
+   return;
+  }
+ }
+
+ private void openArchive()
+ {
+  
+  WindowManager.openPage("Archive", "ARCHIVE " + (DateTime.Now.ToString("dd MMM yyyy").ToUpper()), Guid.NewGuid().ToString());
+ }
+
+ private void newInc()
+ {
+  WindowManager.openPage("NEWINC", "NEW INCIDENT");
+ }
+
+
+}

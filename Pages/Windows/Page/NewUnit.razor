@@ -1,0 +1,195 @@
+﻿@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+
+<div class="ROOT">
+
+ <div class="HEADER">
+  <div class="TITLE">
+   NEW UNIT
+  </div>
+  <div class="CONTROLS">
+   <button class="DISCARD" @onclick="discard">DISCARD</button>
+   <button class="SAVE" @onclick="save">Save</button>
+   <button class="SAVE" @onclick="saveclose">Save & Close</button>
+  </div>
+ </div>
+
+ <div class="BODY">
+  <div class="LINE1">
+   <div class="LABEL">
+    Callsign
+   </div>
+   <input @key='myUnit.unit' @bind='myUnit.unit' />
+  </div>
+
+  <div class="LINE2">
+   <div class="ROLECONTAINER">
+    <div class="LABEL">
+     Role
+    </div>
+
+    <select @key="myUnit.role" @bind='myUnit.role'>
+     @foreach (string s in roles)
+     {
+      <option value="@s">@s</option>
+     }
+    </select>
+   </div>
+
+  </div>
+
+ </div>
+</div>
+
+@code {
+
+  [Parameter]
+  public required Window para { get; set; }
+
+ private Unit myUnit
+ {
+  get
+  {
+   if (para.memory.ContainsKey("MYUNIT"))
+    return (Unit)para.memory["MYUNIT"];
+   return new Unit();
+  }
+  set
+  {
+   para.memory["MYUNIT"] = value;
+  }
+ }
+
+ private string status
+ {
+  get
+  {
+   return myUnit.status;
+  }
+  set
+  {
+   myUnit.status = value;
+  }
+ }
+
+ private string attachment
+ {
+  get
+  {
+   UnitGlance? ug = Units.units.FirstOrDefault(uu => uu.unit == myUnit.unit);
+   if (ug != null)
+    return (ug.attachment ?? "");
+   return "";
+  }
+ }
+
+ private int incID
+ {
+  get
+  {
+   UnitGlance? ug = Units.units.FirstOrDefault(uu => uu.unit == myUnit.unit);
+   if (ug != null)
+    return (ug.incID);
+   return -1;
+  }
+ }
+
+ private List<string> roles
+ {
+  get
+  {
+   if (para.memory.ContainsKey("ROLES"))
+    return (List<string>)para.memory["ROLES"];
+   return new List<string>();
+  }
+  set
+  {
+   para.memory["ROLES"] = value;
+  }
+ }
+
+
+ private void discard()
+ {
+  WindowManager.closePage(para);
+ }
+
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleUpdate;
+  Units.unitsUpdated += handleUpdate;
+  await _unitsService.reqUpdate();
+
+  if (para.firstRender)
+   await FIRSTRENDER();
+
+
+ }
+
+ private void handleUpdate()
+ {
+  StateHasChanged();
+ }
+
+ private void handleUpdate(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.window == para && (we.type != windowEvent.WindowEventType.opened || we.type != windowEvent.WindowEventType.maximized))
+  {
+   Units.unitsUpdated -= handleUpdate;
+   WindowManager.WindowChanged -= handleUpdate;
+  }
+ }
+
+ private async Task FIRSTRENDER()
+ {
+  para.firstRender = false;
+  myUnit = new Unit();
+  myUnit.unit = "";
+  myUnit.status = "Out Of Service";
+  myUnit.type = "Unit";
+  roles = await _unitsService.getRoles() ?? new List<string>();
+  myUnit.role = roles[0] ?? "";
+
+  StateHasChanged();
+ }
+
+ private async Task saveclose()
+ {
+  await save(true);
+  discard();
+ }
+
+ private async Task save()
+ {
+  await save(false);
+ }
+
+ private async Task save(bool closing = false)
+ {
+  UnitUpdateRequest uur = new UnitUpdateRequest();
+  uur.unit = myUnit;
+  uur.session = SystemInformation.session;
+  await _http.PostAsJsonAsync<UnitUpdateRequest>(SystemInformation.sysURL+"/API/Units/Units/new/", uur);
+  if (closing) return;
+
+  para.firstRender = true;
+  para.WINDOWTYPE = "UnitEdit";
+  para.property = myUnit.unit;
+  para.Title = "Unit " + myUnit.unit;
+  para.memory = new Dictionary<string,object>();
+  WindowManager.RequestRefresh();
+
+ }
+
+
+}

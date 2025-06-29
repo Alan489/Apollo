@@ -1,0 +1,76 @@
+﻿.ROOT {
+  padding: 3px;
+  position: absolute;
+  top: 30px;
+  display: flex;
+  flex-direction: column;
+  left: 20px;
+  box-shadow: 3px 3px 3px black;
+  border-radius:5px;
+  border-top: 2px solid #777;
+  border-left: 2px solid #777;
+  background-color: rgba(50,50,50,.95);
+}
+
+.HEADER {
+  background-color: rgba(30,30,30,.9);
+  display:flex;
+  white-space:nowrap;
+}
+.TITLE {
+  flex:1;
+  margin-right: 4em;
+  font-size: 1.2em;
+  padding-left: 8px
+}
+.BODY {
+  flex: 1;
+  
+  justify-content: center;
+  justify-items: center;
+  width: 100%;
+  padding-bottom: 20px;
+}
+
+th,
+td{
+  padding: 3px;
+  text-align:center;
+}
+
+td:hover{
+  background-color: rgba(80,80,80,.9);
+}
+
+table{
+  
+}
+
+.YEARCONTROL,
+.MONTHCONTROL {
+  width: 100%;
+  display: flex;
+}
+
+.LABEL{
+  flex:1;
+  justify-content:center;
+  align-content:center;
+  text-align:center;
+}
+
+  .CLOSE {
+  }
+
+.YEARCONTROL button,
+.MONTHCONTROL button {
+  width: 2em;
+}
+
+
+
+button {
+  background-color: rgba(0,0,0,0);
+  color: white;
+  
+}

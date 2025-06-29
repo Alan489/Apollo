@@ -1,0 +1,71 @@
+﻿@using Apollo2.Sys.Windows
+
+<div class="@(expanded ? "CADSidebarExpanded" : "CADSidebarCollapsed")">
+ <div class="ActiveWindows">
+  <div class="ActiveWindowLabel">
+   Active Windows
+  </div>
+  <div class="ActiveWindowsBox">
+
+   @foreach(Window win in WindowManager.Windows)
+   {
+    <div class="ActiveWindowObject"><button class="@(WindowManager.activeWindow == win ? "ActiveWindowButtonCurrent" : "ActiveWindowButton")" @onclick="() => activeClick(win)">@win.Title</button></div>
+   }
+
+  </div>
+ </div>
+ <div class="ApplicationsContainer">
+  <div class="ApplicationsLabel">
+   Applications
+  </div>
+  <div class="ApplicationsBox">
+   <div class="ApplicationObject"><button class="ApplicationButton" @onclick='()=>openApp("Incidents Board")'>Call Board</button></div>
+   <div class="ApplicationObject"><button class="ApplicationButton">Unit Management</button></div>
+   <div class="ApplicationObject"><button class="ApplicationButton">System Management</button></div>
+   <div class="ApplicationObject"><button class="ApplicationButton">User Settings</button></div>
+   <div class="ApplicationObject"><button class="ApplicationButton" @onclick='()=>openApp("Test")'>Test Application</button></div>
+
+  </div>
+ </div>
+</div>
+<button class="@(expanded ? "CADSidebarCollapseButton" : "CADSidebarCollapsed")" @onclick="tog"></button>
+<button class="@(!expanded ? "CADSidebarExpandButton" : "CADSidebarCollapsed")" @onclick="tog"></button>
+
+@code {
+
+ private bool expanded = true;
+ private void tog()
+ {
+  expanded = !expanded;
+  StateHasChanged();
+ }
+
+ private void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+ }
+
+ protected override void OnInitialized()
+ {
+  base.OnInitialized();
+  WindowManager.WindowChanged += handleWindowChange;
+ }
+
+ private void openApp(string ApplicationName)
+ {
+  
+ }
+
+ private void activeClick(Window window)
+ {
+  if (WindowManager.activeWindow == window)
+  {
+   WindowManager.Minimize(window);
+  }
+  else
+  {
+   WindowManager.Maximize(window);
+  }
+ }
+
+}

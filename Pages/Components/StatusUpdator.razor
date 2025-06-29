@@ -1,0 +1,36 @@
+﻿@using Apollo2.Pages.Windows.Apps
+
+<div class="UpdatorRoot">
+ <div class="UpdatorHeader">
+  <div class="UpdatorCancelButton">
+   <button @onclick='() => onClick("Cancel")'>
+    Cancel
+   </button>
+  </div>
+  <div class="UpdatorHeaderText">
+   Select a status
+  </div>
+ </div>
+ <div class="UpdatorStatusContainer">
+  <div class="UpdatorStatuses">
+   <button class="InServiceButton" @onclick='() => onClick("In Service")'>In Service</button>
+   <button class="BusyButton" @onclick='() => onClick("Busy")'>Busy</button>
+   <button class="OutofServiceButton" @onclick='() => onClick("Out Of Service")'>Out of Service</button>
+  </div>
+ </div>
+</div>
+
+@code {
+ [Parameter]
+ public required IncidentApp parent {get; set;}
+
+ [Parameter]
+ public required string forUnit {get; set;}
+
+ private async void onClick(string status)
+ {
+  parent.statusSelected(status, forUnit);
+ }
+
+
+}

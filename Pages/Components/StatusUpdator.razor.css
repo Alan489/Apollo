@@ -1,0 +1,25 @@
+﻿.UpdatorRoot {
+  color: white;
+}
+
+.UpdatorRoot button {
+  border-radius: 5px;
+  color: white;
+}
+
+.UpdatorCancelButton button {
+  background-color: rgba(255,0,255,.25);
+}
+
+.OutofServiceButton {
+  background-color: rgba(255,0,0,.25);
+}
+
+.BusyButton {
+  background-color: rgba(255,255,0,.25);
+}
+
+.InServiceButton{
+  background-color: rgba(0,255,0,.25);
+
+}

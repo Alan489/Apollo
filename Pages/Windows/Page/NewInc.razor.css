@@ -1,0 +1,441 @@
+﻿.UNITSELECTION {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(50,50,50,.9);
+  display: flex;
+  flex-direction: column;
+  padding:10px;
+  padding-bottom:40px;
+}
+
+.UNITSELECTIONHEADER {
+  font-size: 1.5em;
+  border-bottom: 2px solid #666;
+  position: relative;
+  left: -10px;
+  padding-left: 10px;
+  width: 100%;
+}
+
+  .UNITSELECTIONHEADER button {
+    position: fixed;
+    width: 5em;
+    right: 20px;
+    height: 2em;
+    font-size: .7em;
+    border: 1px solid #A55;
+    background: none;
+    color: #A55;
+    border-radius: 10px;
+  }
+
+    .UNITSELECTIONHEADER button:hover {
+      background: rgba(170, 85, 85, .25);
+    }
+
+.UNITSELECTIONAREA {
+  height:100%;
+  min-height:0px;
+  display: flex;
+  flex-direction: column;
+  overflow-y:scroll;
+}
+
+  .UNITSELECTIONAREA table {
+    min-height: 0px;
+    line-height: 1.2em;
+    font-size: 1em;
+    width: 100%;
+    margin-bottom: 30px;
+
+  }
+
+    .UNITSELECTIONAREA table tr td:first-child {
+      width: 30%;
+    }
+
+    .UNITSELECTIONAREA table tr:hover {
+      background-color: rgba(100,100,100,.9);
+    }
+
+  .UNITSELECTIONAREA div {
+    width: 100%;
+    position: relative;
+    left: -10px;
+    padding-left: 10px;
+    border-bottom: 1px solid #666;
+  }
+
+.IncRoot {
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+}
+
+.IncBody {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  flex-direction: column;
+
+}
+
+.IncHeader {
+  display: flex;
+  color: #999;
+  border-bottom: 2px solid #666;
+  margin-bottom: 6px;
+
+}
+
+.TITLE {
+  flex: 1;
+  font-size: 2em;
+  text-shadow: 1px 1px 2px black;
+}
+
+.CLOSE {
+  line-height: 2em;
+}
+
+.CLOSEBUTTON {
+  line-height: 1em;
+  border: 1px solid #A55;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #A55;
+  font-family: "Noto Sans Mono", monospace;
+}
+
+  .CLOSEBUTTON:hover {
+    background: rgba(170, 85, 85, .25);
+  }
+
+.SAVEBUTTONDISABLED {
+  line-height: 1em;
+  border: 1px solid #777;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #777;
+  font-family: "Noto Sans Mono", monospace;
+  margin-left: 10px;
+}
+.SAVEBUTTON {
+  line-height: 1em;
+  border: 1px solid #595;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #595;
+  font-family: "Noto Sans Mono", monospace;
+  margin-left: 10px;
+}
+
+  .SAVEBUTTON:hover {
+    background: rgba(85, 153, 85, .25);
+  }
+
+.Detail {
+  margin-bottom: 4px;
+}
+
+.DetailLabel {
+  margin-bottom: 2px;
+}
+
+.IncDetailArea {
+  display: flex;
+  font-size: .8em;
+  line-height: 1em;
+  border-bottom: 2px solid #666;
+  margin-bottom: 6px;
+  padding-bottom: 3px;
+
+}
+
+.IncDetailArea1 {
+  width: 50%;
+}
+
+  .IncDetailArea1 input {
+    width: 95%;
+    background-color: #333;
+    border-radius: 7px;
+    color: white;
+  }
+
+    .IncDetailArea1 input:focus {
+      border: 2px solid #55A;
+      outline: none;
+    }
+
+.IncDetailArea2 {
+  flex: 1;
+}
+
+  .IncDetailArea2 input {
+    width: 95%;
+  }
+
+.IncDetailArea3 {
+  justify-items: right;
+  margin-right: 10px;
+}
+
+  .IncDetailArea3 input {
+    background: #252525;
+    color: #999;
+    border-radius: 7px;
+  }
+
+select {
+  width: 98%;
+  background-color: #333;
+  border-radius: 7px;
+  color: white;
+}
+
+  select:focus {
+    outline: none;
+    border: 2px solid #55A;
+  }
+
+.RandomContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.UnitsAndNotes {
+  flex:1;
+  display: flex;
+  overflow-y: hidden;
+}
+
+.IncUnits {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  padding-left: 5px;
+  border-left: 1px solid #666;
+  min-height: 0; 
+}
+
+.UnitsAttached,
+.UnitsPreviouslyAttached {
+  flex: 1;
+  overflow-y: scroll;
+  min-height: 0; /* Enables scrolling inside flex */
+}
+.UnitsPreviouslyAttached {
+  border-top: 2px solid #666;
+}
+
+.UnitsHeader {
+  margin-top: 5px;
+  background-color: #252525;
+  color: #AAA;
+  padding-top: 3px;
+  padding-left: 3px;
+  padding-bottom: 3px;
+
+}
+
+.UnitsPreviouslyAttachedTable,
+.UnitsAttachedTable {
+  width: 100%;
+  font-size: 0.8em;
+  line-height: 1em;
+  border-collapse: collapse;
+  min-height: 0
+}
+
+  .UnitsPreviouslyAttachedTable tr:first-child,
+  .UnitsAttachedTable tr:first-child {
+    background-color: #252525;
+    color: #BBB;
+  }
+
+    .UnitsPreviouslyAttachedTable tr:first-child td:not(:first-child),
+    .UnitsAttachedTable tr:first-child td:not(:first-child) {
+      font-size: 1em;
+      text-align: center;
+    }
+
+  .UnitsPreviouslyAttachedTable tr:not(:first-child):hover,
+  .UnitsAttachedTable tr:not(:first-child):hover {
+    background-color: #555;
+  }
+
+  .UnitsPreviouslyAttachedTable tr:not(:first-child),
+  .UnitsAttachedTable tr:not(:first-child) {
+    line-height: 1.5em;
+    text-align: center;
+  }
+
+  .UnitsPreviouslyAttachedTable td:first-child,
+  .UnitsAttachedTable td:first-child {
+    width: 20em;
+    text-align: left !important;
+  }
+
+
+.timerButton {
+  background: none;
+  color: #999;
+  text-shadow: 1px 1px 1px black;
+  border-radius: 7px;
+  border-top: 1px solid #111;
+  border-left: 1px solid #111;
+  border-right: 1px solid #999;
+  border-bottom: 1px solid #999;
+  box-shadow: 1px 1px 1px black;
+}
+
+  .timerButton:hover {
+    border: 1px solid #DDD;
+    color: #DDD;
+  }
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #3a3a3a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+.IncNotes {
+  flex: 0 0 35%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.NotesHeader {
+  margin-top: 5px;
+  margin-right: 8px;
+  background-color: #252525;
+  color: #AAA;
+  padding-top: 3px;
+  padding-left: 3px;
+  padding-bottom: 3px;
+  margin-bottom: 4px;
+  border-right: 2px solid #999;
+  border-bottom: 2px solid #999;
+  border-top: 2px solid #111;
+  border-left: 2px solid #111;
+}
+.NotesContainer {
+  min-height:0px;
+  display: flex;
+  flex-direction: column;
+  flex:1;
+}
+
+.AddNotesArea{
+
+}
+
+.NOTESENTER {
+  background-color: #333;
+  border-radius: 7px;
+  color: white;
+  margin-right: 5px;
+  width: 98%;
+  font-size: .75em;
+}
+  .NOTESENTER:focus{
+    outline: none;
+  }
+
+.NOTESCONTROL {
+  }
+
+.NOTESSELECTUNIT {
+  margin-top: 5px;
+  line-height: 1em;
+  border: 1px solid #777;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #777;
+  font-family: "Noto Sans Mono", monospace;
+  box-shadow: 2px 2px 3px black;
+}
+
+.NOTESSELECTUNIT:hover {
+  margin-top: 5px;
+  line-height: 1em;
+  border: 1px solid #777;
+  border-radius: 8px;
+  background-color: rgba(75,75,75,.75);
+  color: #777;
+  font-family: "Noto Sans Mono", monospace;
+}
+
+.NOTESSELECTUNITSELECTED {
+  margin-top: 5px;
+  line-height: 1em;
+  border: 1px solid #595;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #595;
+  font-family: "Noto Sans Mono", monospace;
+}
+
+.NOTESSELECTUNITSELECTED:hover {
+  line-height: 1em;
+  border: 1px solid #A55;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #A55;
+  font-family: "Noto Sans Mono", monospace;
+}
+
+.NotesArea {
+  margin-top: 10px;
+  height: 100%;
+  overflow-y: scroll;
+}
+
+.NOTE {
+  box-shadow: 3px 3px 3px black;
+  margin-bottom: 8px;
+  margin-right: 5px;
+  border-right: 2px solid #999;
+  border-bottom: 2px solid #999;
+  border-top: 2px solid #111;
+  border-left: 2px solid #111;
+  padding: 2px;
+}
+
+.NOTEMESSAGE {
+  font-size: .9em;
+  border-bottom: 1px solid #666;
+}
+
+.NOTEFOOTER{
+  font-size: .75em;
+}
+
+.NOTEUNIT{
+}
+
+.NOTETIMESTAMP{
+  float:right;
+}
+.NOTEWRITER{
+
+}

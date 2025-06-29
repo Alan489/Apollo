@@ -1,0 +1,314 @@
+﻿@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Sys
+@using Apollo2.Shared.Sys
+@using Apollo2.Shared.Sys.Authentication
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using System.Timers;
+@using System.Text.RegularExpressions
+@using Blazored.LocalStorage
+@using Blazored.SessionStorage
+@using System.Text.Json
+@inject NavigationManager _navi
+@inject HttpClient _http
+@inject IJSRuntime JS
+@inject SystemInformation _sys
+@inject ILocalStorageService _store
+@inject ISessionStorageService _session
+
+<div id="HEADERCONTAINER">
+
+
+ <div class="Header">
+  <div class="HeaderLeft">
+   @SystemInformation.session?.sysName<br />
+   @SystemInformation.session?.Name<span> (@SystemInformation.session?.Username)</span>
+   <button class="logoutButton" @onclick="logout">Logout</button>
+  </div>
+  <div class="HeaderCenter">
+   APOLLO CAD
+  </div>
+  <div class="HeaderRight">
+   <div class="HeaderClock">
+    @time
+   </div>
+  </div>
+ </div>
+
+ <div class="HeaderCrumbs" id="HeaderContainer">
+  <div class="CrumbContainer" id="CrumbContainer" dropzone="WINDOWS" ondragstart="@AllowDragOver" @ondrop="args => dropped(args)" ondragover="event.preventDefault();">
+   <div class='@(
+        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "IncidentsBoard")?
+        "crumbactive" : "crumb"
+        )' @onclick='() => openApp("IncidentsBoard")'>
+    <button>
+     Call Board
+    </button>
+   </div>
+   <div class='@(
+        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "UnitsBoard")?
+        "crumbactive" : "crumb"
+        )' @onclick='() => openApp("UnitsBoard")'>
+    <button>
+     Unit Management
+    </button>
+   </div>
+   <div class='@(
+        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "Profile")?
+        "crumbactive" : "crumb"
+        )' @onclick='() => openApp("Profile")'>
+    <button>
+     User Profile
+    </button>
+   </div>
+   @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 5)
+   {
+    <div class='@(
+        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "SYSMANAGEMENT")?
+        "crumbactive" : "crumb"
+        )' @onclick='() => openApp("SYSMANAGEMENT")'>
+     <button>
+      System Management
+     </button>
+    </div>
+
+   }
+
+   @foreach (Window w in WindowManager.Windows.Where(wa => wa.WINDOWTYPE != "IncidentsBoard" && wa.WINDOWTYPE != "UnitsBoard" && wa.WINDOWTYPE != "Profile" && wa.WINDOWTYPE != "SYSMANAGEMENT").ToList())
+   {
+    @if (w.WINDOWTYPE == "INC" || w.WINDOWTYPE == "UnitEdit")
+    {
+     <div class='@(
+        (WindowManager.activeWindow != null && WindowManager.activeWindow == w)?
+        "crumbactive drag" : "crumb drag"
+        )' @onclick='() => maximize(w)'
+     draggable="true" dropzone="WINDOWS" @ondragstart='() => dragme(w)' @ondragend='() => dragend(w)'
+     >
+      <button>
+       @w.Title
+      </button>
+     </div>
+    }
+    else
+    {
+     <div class='@(
+        (WindowManager.activeWindow != null && WindowManager.activeWindow == w)?
+        "crumbactive" : "crumb"
+        )' @onclick='() => maximize(w)'>
+      <button>
+       @w.Title
+      </button>
+     </div>
+    }
+   }
+
+  </div>
+ </div>
+</div>
+
+@code {
+ private string time = DateTime.Now.ToString("HH:mm:ss");
+
+ private async Task dragme(Window w)
+ {
+  await _store.SetItemAsync<Window>("DRAGGING", w);
+  string json = JsonSerializer.Serialize(w.memory);
+
+
+  int i = 0;
+
+  for (int stored = 0; stored < json.Length; stored += 4096)
+  {
+   if (stored + 4096 > json.Length)
+    await _store.SetItemAsStringAsync("DRAGGINGMEM" + i, json.Substring(stored));
+   else
+    await _store.SetItemAsStringAsync("DRAGGINGMEM" + i, json.Substring(stored, 4096));
+   i++;
+  }
+
+  //await _store.SetItemAsStringAsync("DRAGGINGMEM", json);
+  Console.WriteLine(JsonSerializer.Deserialize<Dictionary<string,object>>(JsonSerializer.SerializeToUtf8Bytes(w.memory)));
+
+ }
+
+ private async void clearDragging()
+ {
+  await _store.RemoveItemAsync("DRAGGING");
+  int i = 0;
+
+  while (await _store.ContainKeyAsync("DRAGGINGMEM" + i))
+  {
+   await _store.RemoveItemAsync("DRAGGINGMEM" + i);
+   i++;
+  }
+
+ }
+
+ private async Task dragend(Window w)
+ {
+
+  Thread.Yield();
+  Thread.Sleep(75);
+  Thread.Yield();
+  Console.WriteLine("Contains key: " + await _store.ContainKeyAsync("CONSUMED"));
+
+  string? s = null;
+  int retries = 0;
+
+  while (retries < 10 && string.IsNullOrEmpty(s))
+  {
+   s = await _store.GetItemAsStringAsync("CONSUMED");
+   if (!string.IsNullOrEmpty(s))
+    break;
+
+   retries++;
+   await Task.Delay(50); // allow cross-tab sync
+  }
+
+  if (string.IsNullOrEmpty(s))
+  {
+   clearDragging();
+   return;
+  }
+
+  Console.WriteLine("Contains key: " + await _store.ContainKeyAsync("CONSUMED"));
+  
+  if (s == null)
+  {
+   clearDragging();
+    return;
+  }
+  string[] b = s.Split("//");
+  if (b.Length != 2)
+   return;
+
+   Console.WriteLine("My Window " + SystemInformation.windowid);
+   Console.WriteLine("Receiving Window " + b[1]);
+   Console.WriteLine("My Window ID " + w.ID);
+   Console.WriteLine("Consumed Window ID " + b[0]);
+
+  if (b[1] == SystemInformation.windowid) { await _store.RemoveItemAsync("CONSUMED"); clearDragging(); return; }
+
+  if (b[0] != w.ID) return;
+
+  await _store.RemoveItemAsync("CONSUMED");
+  WindowManager.closePage(w);
+ }
+
+ private async Task dropped(DragEventArgs dea)
+ {
+  Window? window = await _store.GetItemAsync<Window>("DRAGGING");
+  if (window == null)
+   return;
+  if (window.WINDOWTYPE != "INC" && window.WINDOWTYPE != "UnitEdit")
+   return;
+
+  string s = "";
+  int i = 0;
+  string? g = await _store.GetItemAsStringAsync("DRAGGINGMEM0");
+
+  while (g != null)
+  {
+   s += g;
+   i++;
+   g = await _store.GetItemAsStringAsync("DRAGGINGMEM" + i);
+  }
+  Dictionary<string, object>? dict = null;
+
+  
+
+  switch(window.WINDOWTYPE)
+  {
+   case "INC":
+    dict = IncidentMemoryDeserializer.deserialize(s);
+    window.firstRender = false;
+    break;
+   case "UnitEdit":
+    dict = UnitEditMemoryDeserializer.deserialize(s);
+    window.firstRender = false;
+    break;
+  }
+
+
+  window.memory = dict ?? new Dictionary<string, object>();
+   WindowManager.openPage(window);
+   await _store.SetItemAsStringAsync("CONSUMED",window.ID + "//" + SystemInformation.windowid);
+   clearDragging();
+ }
+
+ void AllowDragOver()
+ {
+  
+ }
+
+ private void maximize(Window window)
+ {
+  if (WindowManager.activeWindow != window)
+   WindowManager.Maximize(window);
+  else
+   WindowManager.Minimize(window);
+ }
+
+ private void openApp(string app)
+ {
+  if (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == app)
+  {
+   WindowManager.Minimize(WindowManager.activeWindow);
+  }
+  else
+  {
+   WindowManager.openOrMaximizeApplication(app);
+  }
+
+ }
+
+ private void clock(Object? source, ElapsedEventArgs? e)
+ {
+  time = DateTime.Now.ToString("HH:mm:ss");
+  this.StateHasChanged();
+ }
+
+ protected override async Task OnAfterRenderAsync(bool firstRender)
+ {
+  if (firstRender)
+  {
+   await JS.InvokeVoidAsync("enableHorizontalScroll", "HeaderContainer");
+  }
+ }
+
+ private void logout()
+ {
+  SystemInformation.session = null;
+  SystemInformation.sysURL = null;
+  SystemInformation.token = null;
+  _sys.logout();
+  StateHasChanged();
+  _navi.NavigateTo("/");
+ }
+
+ protected override void OnInitialized()
+ {
+  _navi.LocationChanged += LocationChanged;
+  SysTimers.secondTimer.Elapsed += clock;
+  WindowManager.WindowChanged += handleWindowChange;
+  base.OnInitialized();
+ }
+
+
+ private void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+ }
+
+ void LocationChanged(object? sender, LocationChangedEventArgs e)
+ {
+  Dispose();
+ }
+
+ void Dispose()
+ {
+  _navi.LocationChanged -= LocationChanged;
+  SysTimers.secondTimer.Elapsed -= clock;
+ }
+}

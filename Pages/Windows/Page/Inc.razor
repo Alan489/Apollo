@@ -1,0 +1,905 @@
+﻿@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+
+<div class="IncRoot">
+ <div class="IncHeader">
+  <div class="TITLE">
+   @para.Title
+  </div>
+  <div class="CLOSE">
+
+
+   @if (!lck)
+   {
+    <button class="CLOSEBUTTON" @onclick="close">
+     DISCARD
+    </button>
+
+    <button class="SAVEBUTTON" @onclick="() => save(false)">
+     Save
+    </button>
+
+    <button class="SAVEBUTTON" @onclick="saveclose">
+     Save & Close
+    </button>
+   }
+   else
+   {
+    <button class="CLOSEBUTTON" @onclick="close">
+     CLOSE
+    </button>
+    <button class="SAVEBUTTONDISABLED">
+     Save
+    </button>
+
+    <button class="SAVEBUTTONDISABLED">
+     Save & Close
+    </button>
+   }
+
+
+  </div>
+ </div>
+ <div class="IncBody">
+
+  @if ((attachingUnit || selectingUnit) && !lck)
+  {
+   <div class="UNITSELECTION">
+    <div class="UNITSELECTIONHEADER">
+     Select a unit
+     <button @onclick='(MouseEventArgs mea)=>{attachingUnit = false; selectingUnit=false;  StateHasChanged();}'>Cancel</button>
+    </div>
+    <div class="UNITSELECTIONAREA">
+     <div>Available Units</div>
+     <table>
+      @foreach (UnitGlance ug in Units.units.Where(u => u.type == "Unit" && (u.status == "In Service" || selectingUnit)))
+      {
+       <tr @onclick='() => selectUnit(ug.unit)'>
+        <td style="color: @ug.color">
+         @ug.unit
+        </td>
+        <td>
+         @ug.role
+        </td>
+       </tr>
+      }
+     </table>
+     <div>Available Generic Units</div>
+     <table>
+      @foreach (UnitGlance ug in Units.units.Where(u => u.type == "Generic"))
+      {
+       <tr @onclick='() => selectUnit(ug.unit)'>
+        <td style="color: @ug.color">
+         @ug.unit
+        </td>
+        <td>
+         @ug.role
+        </td>
+       </tr>
+      }
+     </table>
+    </div>
+   </div>
+  }
+
+  <div class="IncDetailArea">
+
+   <div class="IncDetailArea1">
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Address
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.location' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.location' maxlength="80" />
+     }
+    </div>
+    <div class="Detail">
+     <div class="DetailLabel">
+      Details
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.call_details' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.call_details' maxlength="80" />
+     }
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Reporting Party
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.reporting_pty' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.reporting_pty' maxlength="80" />
+     }
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Callback Number
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.contact_at' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.contact_at' maxlength="80" />
+     }
+    </div>
+
+   </div>
+
+
+   <div class="IncDetailArea2">
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Call Type
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.call_type' disabled />
+     }
+     else
+     {
+      <select @bind='typ'>
+       <option value="">Not Selected</option>
+       @if (INCTYPES != null)
+        @foreach (string s in INCTYPES)
+        {
+         <option value="@s">@s</option>
+        }
+      </select>
+     }
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Disposition
+     </div>
+     @if (attachments.FirstOrDefault(k => k.cleared_time == null) != null)
+     {
+      <div class="TextError">Release units to close.</div>
+     }
+     else
+     {
+      @if (lck)
+      {
+       <input type="text" @bind-value='myIncident.disposition' disabled />
+      }
+      else
+      {
+       <select @bind='dispo'>
+        <option value="">Not Selected</option>
+        @if (DISPOTYPES != null)
+         @foreach (string s in DISPOTYPES)
+         {
+          <option value="@s">@s</option>
+         }
+       </select>
+      }
+     }
+    </div>
+   </div>
+
+   <div class="IncDetailArea3">
+
+    <div class="Time">
+     <div class="TimeLabel">
+      Received
+     </div>
+     <input type="text" @bind-value='myIncident.ts_opened' disabled />
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Dispatched
+     </div>
+     <input type="text" @bind-value='myIncident.ts_dispatch' disabled />
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      First O/S
+     </div>
+     <input type="text" @bind-value='myIncident.ts_arrival' disabled />
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Closed
+     </div>
+     @if (myIncident != null && myIncident.ts_complete != null && myIncident.ts_complete > DateTime.Now.AddYears(250))
+     {
+      <input type="text" @bind-value='myIncident.ts_complete' disabled />
+     } else
+     {
+      <input type="text" disabled />
+     }
+    </div>
+
+   </div>
+
+  </div>
+
+  <div class="RandomContainer">
+   <div class="UnitsAndNotes">
+    <div class="IncNotes">
+     <div class="NotesHeader">
+      Incident Log
+     </div>
+     <div class="NotesContainer">
+      <div class="AddNotesArea">
+       <input class="NOTESENTER" @bind-value="notesValue" @onkeydown="(KeyboardEventArgs e) => {Enter(e,notesValue);}"/>
+       <div class="NOTESCONTROL">
+        @if (string.IsNullOrEmpty(selectedNotesUnit))
+        {
+         <button class="NOTESSELECTUNIT" @onclick='async (MouseEventArgs mea)=>{selectingUnit = true;}'>Reporting Unit</button>
+        } else
+        {
+         <button class="NOTESSELECTUNITSELECTED" @onclick='()=>{selectedNotesUnit = "";}'>@selectedNotesUnit</button>
+        }
+       </div>
+      </div>
+      <div class="NotesArea">
+       @foreach (IncidentNote note in notes)
+       {
+        <div class="NOTE">
+         <div class="NOTEMESSAGE">
+          @note.message
+         </div>
+         <div class="NOTEFOOTER">
+          @if (!string.IsNullOrEmpty(note.unit))
+          {
+           <div class="NOTEUNIT">
+            @note.unit
+           </div>
+          }
+          <div class="NOTETIMESTAMP">
+           @note.ts.ToString("HH:mm MM/dd/yy")
+          </div>
+          <div class="NOTEWRITER">
+           @note.creator
+          </div>
+         </div>
+        </div>
+       }
+      </div>
+     </div>
+    </div>
+    <div class="IncUnits">
+
+     <div class="UnitsAttached">
+      <div class="UnitsHeader">
+       Attached Units
+      </div>
+      <table class="UnitsAttachedTable">
+       <tr>
+        <td>Unit</td>
+        <td>Dispatched</td>
+        <td>On Scene</td>
+        <td>Transporting</td>
+        <td>Destination</td>
+        <td>Clear</td>
+       </tr>
+       <tr>
+        @if (!lck)
+        {
+         <td @onclick='async (MouseEventArgs mea)=>{attachingUnit = true; await _unitsService.reqUpdate();}' colspan="6">
+          Attach Unit
+         </td>
+
+        }
+       </tr>
+       @foreach (UnitAttachment ua in attachments.Where(u => u.cleared_time == null))
+       {
+        <tr>
+         <td style="color:@ua.color">@ua.unit</td>
+         @if (ua.dispatch_time == null || ua.dispatch_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td><button class="timerButton" @onclick='() => sendUnitStatus(ua.attachmentID,"???")'>Dispatch</button></td>
+         }
+         else
+         {
+          <td>@ua.dispatch_time.ToString("HH:mm")</td>
+         }
+         @if (ua.arrival_time == null || ua.arrival_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td><button class="timerButton" @onclick='() => sendUnitStatus(ua.attachmentID,"arrived")'>On Scene</button></td>
+         }
+         else
+         {
+          <td>@(((DateTime)(ua.arrival_time)).ToString("HH:mm"))</td>
+         }
+         @if (ua.transport_time == null || ua.transport_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td><button class="timerButton" @onclick='() => sendUnitStatus(ua.attachmentID,"transport")'>Transporting</button></td>
+         }
+         else
+         {
+          <td>@(((DateTime)(ua.transport_time)).ToString("HH:mm"))</td>
+         }
+         @if (ua.transportdone_time == null || ua.transportdone_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td><button class="timerButton" @onclick='() => sendUnitStatus(ua.attachmentID,"transportdone")'>Arrived</button></td>
+         }
+         else
+         {
+          <td>@(((DateTime)(ua.transportdone_time)).ToString("HH:mm"))</td>
+         }
+         @if (ua.cleared_time == null || ua.cleared_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td><button class="timerButton" @onclick='() => sendUnitStatus(ua.attachmentID,"cleared")'>Clear</button></td>
+         }
+         else
+         {
+          <td>@(((DateTime)(ua.cleared_time)).ToString("HH:mm"))</td>
+         }
+        </tr>
+       }
+      </table>
+     </div>
+     <div class="UnitsPreviouslyAttached">
+      <div class="UnitsHeader">
+       Cleared Units
+      </div>
+      <table class="UnitsPreviouslyAttachedTable">
+       <tr>
+        <td>Unit</td>
+        <td>Dispatched</td>
+        <td>On Scene</td>
+        <td>Transporting</td>
+        <td>Destination</td>
+        <td>Clear</td>
+       </tr>
+       @foreach (UnitAttachment ua in attachments.Where(u => u.cleared_time != null))
+       {
+        <tr>
+         <td style="color:@ua.color">@ua.unit</td>
+         @if (ua.dispatch_time == null || ua.dispatch_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td></td>
+         }
+         else
+         {
+          <td>@ua.dispatch_time.ToString("HH:mm")</td>
+         }
+         @if (ua.arrival_time == null || ua.arrival_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td></td>
+         }
+         else
+         {
+          <td>@(((DateTime)(ua.arrival_time)).ToString("HH:mm"))</td>
+         }
+         @if (ua.transport_time == null || ua.transport_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td></td>
+         }
+         else
+         {
+          <td>@(((DateTime)(ua.transport_time)).ToString("HH:mm"))</td>
+         }
+         @if (ua.transportdone_time == null || ua.transportdone_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td></td>
+         }
+         else
+         {
+          <td>@(((DateTime)(ua.transportdone_time)).ToString("HH:mm"))</td>
+         }
+         @if (ua.cleared_time == null || ua.cleared_time < DateTime.UtcNow.AddYears(-250))
+         {
+          <td></td>
+         }
+         else
+         {
+          <td>@(((DateTime)(ua.cleared_time)).ToString("HH:mm"))</td>
+         }
+        </tr>
+       }
+      </table>
+     </div>
+    </div>
+   </div>
+  </div>
+
+ </div>
+</div>
+
+
+
+@code {
+
+ [Parameter]
+ public required Window para { get; set; }
+
+ private string typ
+ {
+  get
+  {
+   if (myIncident == null)
+    return "";
+
+   return myIncident.call_type ?? "Not selected";
+  }
+
+  set
+  {
+   if (myIncident == null)
+    return;
+
+   myIncident.call_type = value;
+  }
+
+ }
+
+
+ private string dispo
+ {
+  get
+  {
+   if (myIncident == null)
+    return "";
+
+   return myIncident.disposition ?? "Not selected";
+  }
+
+  set
+  {
+   if (myIncident == null)
+    return;
+
+   myIncident.disposition = value;
+  }
+
+ }
+
+ private List<string>? DISPOTYPES
+ {
+  get
+  {
+
+   if (!lck && !errorOccured && !para.firstRender)
+    return ((List<string>)para.memory["DISPOTYPES"]);
+   else
+    return null;
+  }
+ }
+
+ private List<string>? INCTYPES
+ {
+  get
+  {
+
+   if (!lck && !errorOccured && !para.firstRender)
+    return ((List<string>)para.memory["INCTYPES"]);
+   else
+    return null;
+  }
+ }
+
+ private bool attachingUnit
+ {
+  set
+  {
+   if (value)
+   {
+    para.memory["attachingUnit"] = "YES";
+   }
+   else
+   {
+    if (para.memory.ContainsKey("attachingUnit"))
+     para.memory.Remove("attachingUnit");
+   }
+  }
+  get
+  {
+   if (!lck && para.memory.ContainsKey("attachingUnit"))
+   {
+    return true;
+   }
+   return false;
+  }
+ }
+
+ private bool selectingUnit
+ {
+  set
+  {
+   if (value)
+   {
+    para.memory["selectingUnit"] = "YES";
+   }
+   else
+   {
+    if (para.memory.ContainsKey("selectingUnit"))
+     para.memory.Remove("selectingUnit");
+   }
+  }
+  get
+  {
+   if (!lck && para.memory.ContainsKey("selectingUnit"))
+   {
+    return true;
+   }
+   return false;
+  }
+ }
+
+ private bool lck = true;
+
+ private Incident myIncident
+ {
+  get
+  {
+   if (para.firstRender || errorOccured)
+    return new Incident();
+
+   return (Incident)para.memory["MYINCIDENT"];
+  }
+ }
+
+ private List<UnitAttachment> attachments
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("UNITATTACHMENTS"))
+    return new List<UnitAttachment>();
+   return ((List<UnitAttachment>?)para.memory["UNITATTACHMENTS"]) ?? new List<UnitAttachment>();
+  }
+ }
+
+ private List<IncidentNote> notes
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("INCNOTES"))
+    return new List<IncidentNote>();
+   return ((List<IncidentNote>?)para.memory["INCNOTES"]) ?? new List<IncidentNote>();
+  }
+ }
+
+ private string selectedNotesUnit
+ {
+  set
+  {
+   para.memory["NOTESUNIT"] = value;
+  }
+  get
+  {
+   if (!para.memory.ContainsKey("NOTESUNIT"))
+    para.memory["NOTESUNIT"] = "";
+   return (string)para.memory["NOTESUNIT"] ?? "";
+  }
+ }
+
+ private string notesValue
+ {
+  set
+  {
+   para.memory["NOTEVALUE"] = value;
+  }
+  get
+  {
+   if (!para.memory.ContainsKey("NOTEVALUE"))
+    para.memory["NOTEVALUE"] = "";
+   return (string)para.memory["NOTEVALUE"] ?? "";
+  }
+ }
+
+ private bool errorOccured = false;
+
+
+ private void close()
+ {
+  WindowManager.closePage(para);
+ }
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleWindowChange;
+  Incidents.incidentsUpdated += handleIncUpdated;
+  Units.unitsUpdated += handleUnitsUpdated;
+  if (para.firstRender)
+   await forceUpdate();
+  para.firstRender = false;
+
+  await _incsService.reqUpdate();
+  if (!para.memory.ContainsKey("LOCKED"))
+   lck = false;
+ }
+
+ private async Task forceUpdate()
+ {
+  Incident? myInc = Incidents.incidents.FirstOrDefault(i => i.incident_id == int.Parse(para.property));
+  if (myInc == null)
+  {
+   errorOccured = true;
+   StateHasChanged();
+   para.firstRender = false;
+   return;
+  }
+  para.memory["MYINCIDENT"] = myInc;
+  await updateAttchments();
+  await updateIncNotes();
+
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + "/API/Incidents/Incidents/get/inctypes", SystemInformation.session);
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   errorOccured = true;
+   return;
+  }
+
+  List<string>? tmp = await resp.Content.ReadFromJsonAsync<List<string>>();
+
+  if (tmp == null)
+  {
+   errorOccured = true;
+   return;
+  }
+
+  para.memory["INCTYPES"] = tmp;
+
+
+  resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + "/API/Incidents/Incidents/get/dispotypes", SystemInformation.session);
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   errorOccured = true;
+   return;
+  }
+
+  tmp = await resp.Content.ReadFromJsonAsync<List<string>>();
+
+  if (tmp == null)
+  {
+   errorOccured = true;
+   return;
+  }
+
+  para.memory["DISPOTYPES"] = tmp;
+
+  para.firstRender = false;
+  if (!para.memory.ContainsKey("LOCKED"))
+   lck = false;
+  StateHasChanged();
+ }
+
+ public async void Enter(KeyboardEventArgs e, string n)
+ {
+  if (e.Code == "Enter" || e.Code == "NumpadEnter")
+  {
+   if (string.IsNullOrEmpty(notesValue))
+    StateHasChanged();
+   if (string.IsNullOrEmpty(notesValue)) return;
+   IncidentNotePost incidentNotePost = new IncidentNotePost();
+   incidentNotePost.sess = SystemInformation.session;
+   incidentNotePost.unit = selectedNotesUnit;
+   incidentNotePost.message = notesValue;
+   incidentNotePost.ts = DateTime.Now;
+
+   IncidentNote nn = new IncidentNote();
+   nn.creator = SystemInformation.token.username;
+   nn.unit = selectedNotesUnit;
+   nn.message = notesValue;
+   nn.ts = DateTime.Now;
+
+   selectedNotesUnit = "";
+   notesValue = "";
+
+   notes.Insert(0, nn);
+
+   StateHasChanged();
+
+   var respa = await _http.PostAsJsonAsync<IncidentNotePost>(SystemInformation.sysURL + $"/API/Incidents/Incidents/post/incnotes/{para.property}", incidentNotePost);
+
+
+   await updateIncNotes();
+   StateHasChanged();
+  }
+ }
+
+ private async Task save(bool ovr = false)
+ {
+  if (lck && !ovr) return;
+  StateHasChanged();
+  if (!ovr)
+   lck = true;
+
+  if (!string.IsNullOrEmpty(dispo) && dispo.ToLower() != "not selected" && (myIncident.incident_status == "New" || myIncident.incident_status == "Open"))
+  {
+   myIncident.ts_complete = DateTime.Now;
+   myIncident.incident_status = "Dispositioned";
+   myIncident.updated = DateTime.Now;
+
+   SaveIncidentRequest sira = new SaveIncidentRequest();
+   sira.session = SystemInformation.session;
+   sira.incident = (Incident)para.memory["MYINCIDENT"];
+
+   var respa = await _http.PostAsJsonAsync<SaveIncidentRequest>(SystemInformation.sysURL + "/API/Incidents/Incidents/post/save", sira);
+
+   para.memory["LOCKED"] = "yes";
+
+   return;
+  }
+
+  myIncident.updated = DateTime.Now;
+
+  SaveIncidentRequest sir = new SaveIncidentRequest();
+  sir.session = SystemInformation.session;
+  sir.incident = (Incident)para.memory["MYINCIDENT"];
+
+  var resp = await _http.PostAsJsonAsync<SaveIncidentRequest>(SystemInformation.sysURL + "/API/Incidents/Incidents/post/save", sir);
+
+
+
+
+  if (!ovr)
+   lck = false;
+
+  StateHasChanged();
+
+  return;
+ }
+
+
+ private async Task saveclose()
+ {
+  if (lck) return;
+  lck = true;
+
+  await save(true);
+
+  WindowManager.openOrMaximizeApplication("IncidentsBoard");
+  WindowManager.closePage(para);
+
+ }
+
+ private async Task sendUnitStatus(int attachmentID, string t)
+ {
+
+  UnitAttachment? ua = attachments.FirstOrDefault(mb => mb.attachmentID == attachmentID);
+
+  if (ua == null) return;
+
+  switch (t)
+  {
+   case "arrived":
+    ua.arrival_time = DateTime.Now;
+    if (myIncident.ts_arrival == null || myIncident.ts_arrival < DateTime.Now.AddYears(-250))
+    {
+     myIncident.ts_arrival = DateTime.Now;
+     await save(true);
+    }
+
+
+    break;
+
+   case "transport":
+    ua.transport_time = DateTime.Now;
+    break;
+
+   case "transportdone":
+    ua.transportdone_time = DateTime.Now;
+    break;
+
+   case "cleared":
+    ua.cleared_time = DateTime.Now;
+    break;
+
+   default:
+    return;
+  }
+
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Units/Units/post/attachment/{attachmentID}/{t}", SystemInformation.session);
+
+
+
+  StateHasChanged();
+ }
+
+ private async void selectUnit(string u)
+ {
+
+  if (attachingUnit)
+  {
+   lck = true;
+   attachingUnit = false;
+   StateHasChanged();
+
+   var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Units/Units/new/attachment/{myIncident.incident_id}/{u}", SystemInformation.session);
+   if (myIncident.ts_dispatch == null || myIncident.ts_dispatch < DateTime.Now.AddYears(-250))
+   {
+    myIncident.ts_dispatch = DateTime.Now;
+    await save(true);
+   }
+
+   await updateAttchments();
+   await _unitsService.reqUpdate();
+   lck = false;
+   StateHasChanged();
+   return;
+  }
+
+  if (selectingUnit)
+  {
+   selectingUnit = false;
+   selectedNotesUnit = u;
+   StateHasChanged();
+   return;
+  }
+
+
+ }
+
+
+ private async Task updateAttchments()
+ {
+  para.memory["UNITATTACHMENTS"] = await _unitsService.getAttachedUnits(para.property);
+ }
+
+ private async void handleUnitsUpdated()
+ {
+  await handleUnitsUpdatedInt();
+ }
+
+ private async Task updateIncNotes()
+ {
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/get/incnotes/{para.property}", SystemInformation.session);
+  List<IncidentNote>? newNotes = await resp.Content.ReadFromJsonAsync<List<IncidentNote>>();
+  if (newNotes == null) return;
+  newNotes.Reverse();
+  para.memory["INCNOTES"] = newNotes;
+ }
+
+
+ private async Task handleUnitsUpdatedInt()
+ {
+  await updateIncNotes();
+  await updateAttchments();
+  StateHasChanged();
+ }
+
+ private void handleIncUpdated()
+ {
+  //StateHasChanged();
+ }
+
+ private async void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.type == windowEvent.WindowEventType.closed || we.type == windowEvent.WindowEventType.minimized)
+  {
+   WindowManager.WindowChanged -= handleWindowChange;
+   Incidents.incidentsUpdated -= handleIncUpdated;
+   Units.unitsUpdated -= handleUnitsUpdated;
+   return;
+  }
+ }
+
+
+}

@@ -1,0 +1,351 @@
+﻿@using Apollo2.Shared.Sys
+@using Apollo2.Sys.Management
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Pages.Components
+@using Apollo2.Sys
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.Data.Units
+@using Apollo2.Shared.Sys.User
+@inject UserManagement _um
+@inject HttpClient _http
+
+
+<div class="ROOT">
+ <div class="HEADER">
+  <div class="TITLE">
+   @para.Title
+  </div>
+  <div class="CONTROLS">
+   <button class="CLOSE" @onclick="close">CLOSE</button>
+  </div>
+ </div>
+
+
+ <div class="BODY">
+
+  <div class="BODYHEADER">
+   <div class="SEARCHTYPECONTAINER">
+    <div class="SEARCHTYPELABEL">
+     Searching for incidents based on:
+    </div>
+    @if (!incSearch)
+    {
+     <button class="SEARCHTYPEBUTTON" @onclick="switchSearchType">DATE</button>
+    }
+    else
+    {
+     <button class="SEARCHTYPEBUTTON" @onclick="switchSearchType">CALL NUMBER</button>
+    }
+   </div>
+   <div class="SEARCHPARAMS">
+    @if (incSearch)
+    {
+     <div class="SEARCHINGINCIDENT">
+      INC#
+      <input class="INCIDENTNUMBERENTER" @bind="incidentNum" />
+      <button class="INCSEARCHBUTTON" @onclick="searchIncidents">SEARCH</button>
+     </div>
+    }
+    else
+    {
+     <div class="SEARCHINGDATE">
+      <button class="DATESEARCHBUTTON" @onclick="displayCalendar">
+       @searchDay.ToString("dd MMM yyyy")
+      </button>
+     </div>
+    }
+   </div>
+  </div>
+ </div>
+ @if (selectingDate)
+ {
+  <DateSelector memory="para.memory" callback="dateCallback"/>
+ }
+
+ <div class="BODYPROPER">
+  <table class="IncidentsTable">
+   <tr class="IncidentsTableHeader">
+    <td>Call Number</td>
+    <td>Details</td>
+    <td>Location</td>
+    <td>Disposition</td>
+    <td>Opened</td>
+    <td>Completed</td>
+    <td>Reopen</td>
+   </tr>
+   @if (foundIncidents != null && foundIncidents.Count != 0)
+   {
+    @foreach (Incident inc in foundIncidents)
+    {
+     <tr class="IncidentRow" @onclick="() => openArchiveIncident(inc)">
+      <td class="call_number">@inc.call_number</td>
+      <td class="call_details">@inc.call_details</td>
+      <td class="location">@inc.location</td>
+      <td class="disposition">@inc.disposition</td>
+      <td class="ts_opened">@(((DateTime)(inc.ts_opened ?? DateTime.MinValue)).ToString("dd MMM yyyy HH:mm"))</td>
+      <td class="ts_complete">@(((DateTime)(inc.ts_complete ?? DateTime.MinValue)).ToString("dd MMM yyyy HH:mm"))</td>
+      @if (SystemInformation.session.AccessLevel < 5)
+      {
+       <div class="TextError">
+        X
+       </div>
+      } else
+      {
+       <div class="ReopenDiv" @onclick="() => reopen(inc)">
+        Reopen
+       </div>
+      } 
+     </tr>
+    }
+   }
+  </table>
+
+  @if(SystemInformation.session.AccessLevel < 5)
+  {
+   <div class="TextError">
+    You are not authorized to reopen Incidents.
+   </div>
+  }
+
+  @if( (foundIncidents == null || foundIncidents.Count == 0))
+  {
+   <div class="TextError">
+    No Incidents found with selected criteria.
+   </div>
+  }
+
+ </div>
+
+</div>
+
+
+@code {
+ [Parameter]
+ public required Window para { get; set; }
+
+ private bool incSearch
+ {
+  get
+  {
+   return para.memory.ContainsKey("INCSEARCH");
+  }
+  set
+  {
+   if (incSearch && !value)
+    para.memory.Remove("INCSEARCH");
+   if (value)
+    para.memory["INCSEARCH"] = "Y";
+   StateHasChanged();
+  }
+
+ }
+
+ public string incidentNum
+ {
+  get
+  {
+   if (para.memory.ContainsKey("INCIDENTNUM"))
+    return (string)para.memory["INCIDENTNUM"];
+   return "";
+  }
+  set
+  {
+   para.memory["INCIDENTNUM"] = value;
+  }
+ }
+
+ public DateOnly searchDay
+ {
+  get
+  {
+   if (para.memory.ContainsKey("SEARCHDAY"))
+    return (DateOnly)para.memory["SEARCHDAY"];
+   return DateOnly.FromDateTime(DateTime.Now);
+  }
+  set
+  {
+   para.memory["SEARCHDAY"] = value;
+  }
+ }
+
+ private List<Incident> foundIncidents
+ {
+  get
+  {
+   if (para.memory.ContainsKey("FOUNDINCIDENTS"))
+    return (List<Incident>)para.memory["FOUNDINCIDENTS"];
+   return new List<Incident>();
+  }
+  set
+  {
+   para.memory["FOUNDINCIDENTS"] = value;
+  }
+ }
+
+ private bool selectingDate
+ {
+  get
+  {
+   if (incSearch)
+    return false;
+   else
+    return para.memory.ContainsKey("SELECTINGDATE");
+  }
+  set
+  {
+   if (!value)
+    para.memory.Remove("SELECTINGDATE");
+   else
+    para.memory["SELECTINGDATE"] = "Y";
+   StateHasChanged();
+  }
+ }
+
+
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleWindowChange;
+  StateHasChanged();
+ }
+ private async void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.type == windowEvent.WindowEventType.closed || we.type == windowEvent.WindowEventType.minimized)
+  {
+   WindowManager.WindowChanged -= handleWindowChange;
+   return;
+  }
+ }
+ private void close()
+ {
+  WindowManager.closePage(para);
+ }
+
+ private void switchSearchType()
+ {
+  incSearch = !incSearch;
+
+  incidentNum = "";
+
+  if (incSearch)
+   para.Title = "ARCHIVE SEARCH";
+  else
+   para.Title = "ARCHIVE " + searchDay.ToString("dd MMM yyyy").ToUpper();
+
+  foundIncidents = new List<Incident>();
+
+  WindowManager.RequestRefresh();
+
+  StateHasChanged();
+ }
+
+ private void dateCallback(DateOnly? dateOnly = null)
+ {
+  para.memory.Remove("DSMEMDATE");
+  if (dateOnly != null)
+  {
+   searchDay = (DateOnly)dateOnly;
+   para.Title = "ARCHIVE " + searchDay.ToString("dd MMM yyyy").ToUpper();
+   WindowManager.RequestRefresh();
+   searchIncidents();
+  }
+
+
+  selectingDate = false;
+
+  StateHasChanged();
+ }
+
+ private void displayCalendar()
+ {
+  para.memory.Remove("DSMEMDATE");
+  selectingDate = true;
+ }
+
+ private void openArchiveIncident(Incident inc)
+ {
+  Window w = new Window();
+  w.memory = new Dictionary<string, object>();
+  w.memory["MYINCIDENT"] = inc;
+  w.Title = "ARCHIVE INC#" + inc.call_number;
+  w.WINDOWTYPE = "ArchivedInc";
+  w.property = "" + inc.incident_id;
+  WindowManager.openPage(w);
+ }
+
+
+ //API/Incidents/Incidents/post/archive/reopen/{incidentID}
+ private async void reopen(Incident inc)
+ {
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/post/archive/reopen/{inc.incident_id}", SystemInformation.session);
+  inc.disposition = "";
+  inc.ts_complete = null;
+  inc.incident_status = "Open";
+  Incidents.incidents.Add(inc);
+  WindowManager.openPage("INC", "! INC#" + inc.call_number, "" + inc.incident_id);
+ }
+
+
+ //API/Incidents/Incidents/get/archive/byinc/{incidentNum}
+ private async Task searchByIncNumber()
+ {
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/get/archive/byinc/{incidentNum}", SystemInformation.session);
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   foundIncidents = new List<Incident>();
+   return;
+  }
+
+  List<Incident>? newIncs = await resp.Content.ReadFromJsonAsync<List<Incident>>();
+
+  if (newIncs == null)
+  {
+   foundIncidents = new List<Incident>();
+   return;
+  }
+
+  foundIncidents = newIncs;
+ }
+
+ // API/Incidents/Incidents/get/archive/byday/{date(MM.dd.yyyy)}
+ private async Task searchByDate()
+ {
+
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/get/archive/byday/{searchDay.ToString("MM.dd.yyyy")}", SystemInformation.session);
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   foundIncidents = new List<Incident>();
+   return;
+  }
+
+  List<Incident>? newIncs = await resp.Content.ReadFromJsonAsync<List<Incident>>();
+
+  if (newIncs == null)
+  {
+   foundIncidents = new List<Incident>();
+   return;
+  }
+
+  foundIncidents = newIncs;
+
+ }
+
+ private async void searchIncidents()
+ {
+  if (incSearch)
+   await searchByIncNumber();
+  else
+   await searchByDate();
+
+   StateHasChanged();
+
+ }
+
+
+}

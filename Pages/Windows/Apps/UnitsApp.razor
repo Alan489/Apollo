@@ -1,0 +1,165 @@
+﻿@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+
+<div class="ROOT">
+
+ <div class="Header">
+  UNIT MANAGEMENT
+ </div>
+
+ <div class="Body">
+  <div class="Container">
+
+   <div class="UnitsContainer">
+    <div class="UnitsHeader">
+     Units
+     <button class="NEWUNIT" @onclick='newUnit'>New Unit</button>
+    </div>
+    <div class="UnitsPopulation">
+     <table>
+      <tr class="TableHeader">
+       <td>Unit</td>
+       <td>Branch</td>
+       <td>Status</td>
+       <td>Incident</td>
+       <td>Edit</td>
+      </tr>
+      @foreach (UnitGlance ug in Units.units.Where(u => u.type == "Unit"))
+      {
+       <tr class="@getUnitStatusClass(ug.status)">
+        <td style="color: @ug.color">
+         @ug.unit
+        </td>
+        <td>
+         @ug.role
+        </td>
+        <td>
+         @ug.status
+        </td>
+        @if (!string.IsNullOrEmpty(ug.attachment))
+        {
+         <td class="INCIDENTTRANSFER" @onclick="() => openIncident(ug.incID)">
+          INC#@ug.attachment
+         </td>
+        }
+        else
+        {
+         <td class="NOTATTACHED">Not Attached</td>
+        }
+        <td @onclick="()=>editUnit(ug)">
+         EDIT
+        </td>
+       </tr>
+      }
+     </table>
+    </div>
+   </div>
+
+   <div class="UnitsContainer">
+    <div class="UnitsHeader">
+     Generic Units
+     <button class="NEWUNIT" @onclick='newGenericUnit'>New Generic Unit</button>
+    </div>
+    <div class="UnitsPopulation">
+     <table>
+      <tr class="TableHeader">
+       <td>Name</td>
+       <td>Branch</td>
+       <td>Edit</td>
+      </tr>
+      @foreach (UnitGlance ug in Units.units.Where(u => u.type == "Generic"))
+      {
+       <tr>
+        <td style="color: @ug.color">
+         @ug.unit
+        </td>
+        <td>
+         @ug.role
+        </td>
+        <td @onclick="()=>editUnit(ug)">
+         EDIT
+        </td>
+       </tr>
+      }
+     </table>
+    </div>
+   </div>
+
+  </div>
+ </div>
+
+
+
+</div>
+
+@code {
+
+ [Parameter]
+ public required Window para { get; set; }
+
+
+ private void editUnit(UnitGlance ug)
+ {
+  if (ug.type == "Generic")
+   WindowManager.openPage("GenericUnitEdit","Unit " + ug.unit, ug.unit);
+  else
+   WindowManager.openPage("UnitEdit", "Unit " + ug.unit, ug.unit);
+
+ }
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleUpdate;
+  Units.unitsUpdated += handleUpdate;
+  para.firstRender = false;
+
+  await _unitsService.reqUpdate();
+ }
+
+ private void handleUpdate()
+ {
+  StateHasChanged();
+ }
+
+ private void newUnit()
+ {
+  WindowManager.openPage("NewUnit", "New Unit", "");
+ }
+
+ private void newGenericUnit()
+ {
+  WindowManager.openPage("NewGenericUnit", "New Generic Unit", "");
+ }
+
+ private void handleUpdate(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.window == para && (we.type != windowEvent.WindowEventType.opened || we.type != windowEvent.WindowEventType.maximized))
+  {
+   Units.unitsUpdated -= handleUpdate;
+   WindowManager.WindowChanged -= handleUpdate;
+  }
+ }
+
+ private string getUnitStatusClass(string status)
+ {
+  return "UNITTR " + status.Replace(" ", "");
+ }
+
+ private void openIncident(int inc)
+ {
+  Incident? a = Incidents.incidents.FirstOrDefault(k => k.incident_id == inc);
+
+  if (a != null)
+   WindowManager.openPage("INC", "INC#" + a.call_number, "" + a.incident_id);
+ }
+
+}

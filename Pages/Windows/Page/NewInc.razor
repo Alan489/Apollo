@@ -1,0 +1,506 @@
+﻿@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+
+<div class="IncRoot">
+ <div class="IncHeader">
+  <div class="TITLE">
+   @para.Title
+  </div>
+  <div class="CLOSE">
+
+
+   @if (!lck)
+   {
+    <button class="CLOSEBUTTON" @onclick="close">
+     CLOSE
+    </button>
+
+    <button class="SAVEBUTTON" @onclick="() => save(false)">
+     Save
+    </button>
+
+    <button class="SAVEBUTTON" @onclick="saveclose">
+     Save & Close
+    </button>
+   }
+   else
+   {
+    <button class="CLOSEBUTTON" @onclick="close">
+     CLOSE
+    </button>
+    <button class="SAVEBUTTONDISABLED">
+     Save
+    </button>
+
+    <button class="SAVEBUTTONDISABLED">
+     Save & Close
+    </button>
+   }
+
+
+  </div>
+ </div>
+ <div class="IncBody">
+
+
+  <div class="IncDetailArea">
+
+   <div class="IncDetailArea1">
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Address
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.location' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.location' maxlength="80" />
+     }
+    </div>
+    <div class="Detail">
+     <div class="DetailLabel">
+      Details
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.call_details' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.call_details' maxlength="80" />
+     }
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Reporting Party
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.reporting_pty' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.reporting_pty' maxlength="80" />
+     }
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Callback Number
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.contact_at' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.contact_at' maxlength="80" />
+     }
+    </div>
+
+   </div>
+
+
+   <div class="IncDetailArea2">
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Call Type
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.call_type' disabled />
+     }
+     else
+     {
+      <select @bind='typ'>
+       <option value="">Not Selected</option>
+       @if (INCTYPES != null)
+        @foreach (string s in INCTYPES)
+        {
+         <option value="@s">@s</option>
+        }
+      </select>
+     }
+    </div>
+   </div>
+
+
+   <div class="IncDetailArea3">
+
+    <div class="Time">
+     <div class="TimeLabel">
+      Received
+     </div>
+     <input type="text" @bind-value='myIncident.ts_opened' disabled />
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Dispatched
+     </div>
+     <input type="text" @bind-value='myIncident.ts_dispatch' disabled />
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      First O/S
+     </div>
+     <input type="text" @bind-value='myIncident.ts_arrival' disabled />
+    </div>
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Closed
+     </div>
+     @if (myIncident != null && myIncident.ts_complete != null && myIncident.ts_complete > DateTime.Now.AddYears(250))
+     {
+      <input type="text" @bind-value='myIncident.ts_complete' disabled />
+     } else
+     {
+      <input type="text" disabled />
+     }
+    </div>
+
+   </div>
+
+  </div>
+
+  <div class="TextError">
+   Save to attach units
+  </div>
+
+ </div>
+</div>
+
+
+
+@code {
+
+ [Parameter]
+ public required Window para { get; set; }
+
+ private string typ
+ {
+  get
+  {
+   if (myIncident == null)
+    return "";
+
+   return myIncident.call_type ?? "Not selected";
+  }
+
+  set
+  {
+   if (myIncident == null)
+    return;
+
+   myIncident.call_type = value;
+  }
+
+ }
+
+
+ private string dispo
+ {
+  get
+  {
+   if (myIncident == null)
+    return "";
+
+   return myIncident.disposition ?? "Not selected";
+  }
+
+  set
+  {
+   if (myIncident == null)
+    return;
+
+   myIncident.disposition = value;
+  }
+
+ }
+
+ private List<string>? DISPOTYPES
+ {
+  get
+  {
+
+   if (!lck && !errorOccured && !para.firstRender)
+    return ((List<string>)para.memory["DISPOTYPES"]);
+   else
+    return null;
+  }
+ }
+
+ private List<string>? INCTYPES
+ {
+  get
+  {
+
+   if (!lck && !errorOccured && !para.firstRender)
+    return ((List<string>)para.memory["INCTYPES"]);
+   else
+    return null;
+  }
+ }
+
+ private bool attachingUnit
+ {
+  set
+  {
+   if (value)
+   {
+    para.memory["attachingUnit"] = "YES";
+   }
+   else
+   {
+    if (para.memory.ContainsKey("attachingUnit"))
+     para.memory.Remove("attachingUnit");
+   }
+  }
+  get
+  {
+   if (!lck && para.memory.ContainsKey("attachingUnit"))
+   {
+    return true;
+   }
+   return false;
+  }
+ }
+
+ private bool selectingUnit
+ {
+  set
+  {
+   if (value)
+   {
+    para.memory["selectingUnit"] = "YES";
+   }
+   else
+   {
+    if (para.memory.ContainsKey("selectingUnit"))
+     para.memory.Remove("selectingUnit");
+   }
+  }
+  get
+  {
+   if (!lck && para.memory.ContainsKey("selectingUnit"))
+   {
+    return true;
+   }
+   return false;
+  }
+ }
+
+ private bool lck = true;
+
+ private Incident myIncident
+ {
+  get
+  {
+   if (para.firstRender || errorOccured || (Incident?)para.memory["MYINCIDENT"] == null)
+    return new Incident();
+
+   return (Incident)para.memory["MYINCIDENT"];
+  }
+ }
+
+ private List<UnitAttachment> attachments
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("UNITATTACHMENTS"))
+    return new List<UnitAttachment>();
+   return ((List<UnitAttachment>?)para.memory["UNITATTACHMENTS"]) ?? new List<UnitAttachment>();
+  }
+ }
+
+ private List<IncidentNote> notes
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("INCNOTES"))
+    return new List<IncidentNote>();
+   return ((List<IncidentNote>?)para.memory["INCNOTES"]) ?? new List<IncidentNote>();
+  }
+ }
+
+ private string selectedNotesUnit
+ {
+  set
+  {
+   para.memory["NOTESUNIT"] = value;
+  }
+  get
+  {
+   if (!para.memory.ContainsKey("NOTESUNIT"))
+    para.memory["NOTESUNIT"] = "";
+   return (string)para.memory["NOTESUNIT"] ?? "";
+  }
+ }
+
+ private string notesValue
+ {
+  set
+  {
+   para.memory["NOTEVALUE"] = value;
+  }
+  get
+  {
+   if (!para.memory.ContainsKey("NOTEVALUE"))
+    para.memory["NOTEVALUE"] = "";
+   return (string)para.memory["NOTEVALUE"] ?? "";
+  }
+ }
+
+ private bool errorOccured = false;
+
+
+ private void close()
+ {
+  WindowManager.closePage(para);
+ }
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleWindowChange;
+  if (para.firstRender)
+   await forceUpdate();
+  para.firstRender = false;
+
+  if (!para.memory.ContainsKey("LOCKED"))
+   lck = false;
+ }
+
+ private async Task forceUpdate()
+ {
+  Incident? myInc = new Incident();
+  myInc.ts_opened = DateTime.Now;
+
+
+  para.memory["MYINCIDENT"] = myInc;
+
+
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + "/API/Incidents/Incidents/get/inctypes", SystemInformation.session);
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   errorOccured = true;
+   return;
+  }
+
+  List<string>? tmp = await resp.Content.ReadFromJsonAsync<List<string>>();
+
+  if (tmp == null)
+  {
+   errorOccured = true;
+   return;
+  }
+
+  para.memory["INCTYPES"] = tmp;
+
+
+  resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + "/API/Incidents/Incidents/get/dispotypes", SystemInformation.session);
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   errorOccured = true;
+   return;
+  }
+
+  tmp = await resp.Content.ReadFromJsonAsync<List<string>>();
+
+  if (tmp == null)
+  {
+   errorOccured = true;
+   return;
+  }
+
+  para.memory["DISPOTYPES"] = tmp;
+
+  para.firstRender = false;
+  if (!para.memory.ContainsKey("LOCKED"))
+   lck = false;
+  StateHasChanged();
+ }
+
+
+ private async Task save(bool ovr = false)
+ {
+  if (lck && !ovr) return;
+  StateHasChanged();
+  lck = true;
+
+  SaveIncidentRequest sir = new SaveIncidentRequest();
+  sir.session = SystemInformation.session;
+
+  myIncident.ts_opened = DateTime.Now;
+  sir.incident = myIncident;
+
+
+  var respa = await _http.PostAsJsonAsync<SaveIncidentRequest>(SystemInformation.sysURL + "/API/Incidents/Incidents/post/new", sir);
+
+  if (respa.IsSuccessStatusCode)
+  {
+   Incident? response = await respa.Content.ReadFromJsonAsync<Incident>();
+   if (response == null) return;
+   para.WINDOWTYPE = "INC";
+   para.property = "" + response.incident_id;
+   para.Title = "INC#" + response.call_number;
+   para.memory["MYINCIDENT"] = response;
+   WindowManager.RequestRefresh();
+  }
+
+
+  if (!ovr)
+   lck = false;
+
+  StateHasChanged();
+
+  return;
+ }
+
+ private async Task saveclose()
+ {
+  if (lck) return;
+  lck = true;
+
+  await save(true);
+
+  WindowManager.openOrMaximizeApplication("Incidents Board");
+  WindowManager.closePage(para);
+
+ }
+
+
+ private async Task handleUnitsUpdatedInt()
+ {
+  StateHasChanged();
+ }
+
+
+ private async void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.type == windowEvent.WindowEventType.closed || we.type == windowEvent.WindowEventType.minimized)
+  {
+   WindowManager.WindowChanged -= handleWindowChange;
+   return;
+  }
+ }
+
+
+}

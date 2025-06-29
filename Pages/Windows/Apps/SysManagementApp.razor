@@ -1,0 +1,148 @@
+﻿@using Apollo2.Sys.Management
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Pages.Components
+@using Apollo2.Sys
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.Data.Units
+@using Apollo2.Shared.Sys.User
+@inject UserManagement _um
+
+<div class="ROOT">
+ <div class="HEADER">
+  SYSTEM MANAGEMENT
+ </div>
+ <div class="BODY">
+  <div class="USERAREA">
+
+
+   <div class="USERHEADER">
+    Users
+   </div>
+
+   <div class="USERTABLEAREA">
+
+    @if (_um.unauthorized)
+    {
+     <div class="TextError">You are not authorized to manage users.</div>
+    }
+    else
+    {
+     @if (_um.error)
+     {
+      <div class="TextError">An error occured loading users.</div>
+
+     }
+     else
+     {
+      <table class="USERTABLE">
+       <tr>
+        <td class="ID THEADER">
+         ID
+        </td>
+        <td class="USERNAME THEADER">
+         Username
+        </td>
+        <td class="ACCESS THEADER">
+         Access Level
+        </td>
+        <td class="LOCKED THEADER">
+         Locked Out
+        </td>
+        <td class="CHANGEPASSWORD THEADER">
+         Password Change Req'd
+        </td>
+       </tr>
+       <tr>
+        <td colspan="5" class="NEWUSER" @onclick="() => editUser(-1)">
+         New User
+        </td>
+       </tr>
+       @foreach (UserManagementObject umo in _um.Users)
+       {
+        <tr class="ID" @onclick="() => editUser(umo.id)">
+         <td class="ID">
+          @umo.id
+         </td>
+         <td class="USERNAME">
+          @umo.username
+         </td>
+         <td class="ACCESS">
+          @umo.access_level
+         </td>
+         <td class="LOCKED">
+          @if (umo.locked_out != 0)
+          {
+           <input type="checkbox" checked >
+          } else
+          {
+           <input type="checkbox" >
+          }
+         </td>
+         <td class="CHANGEPASSWORD">
+          @if (umo.change_password != 0)
+          {
+           <input type="checkbox" checked >
+          }
+          else
+          {
+           <input type="checkbox" >
+          }
+         </td>
+        </tr>
+       }
+      </table>
+
+     }
+    }
+
+   </div>
+
+  </div>
+ </div>
+
+
+</div>
+
+@code {
+ [Parameter]
+ public required Window para { get; set; }
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleWindowChange;
+  await _um.refreshUsers();
+  StateHasChanged();
+ }
+
+ private void editUser(int id)
+ {
+  Window w = new Window();
+  w.property = "" + id;
+  w.WINDOWTYPE = "EditUser";
+  if (id == -1)
+  {
+   w.memory["MYUSER"] = new UserManagementObject();
+   w.Title = "NEW USER";
+  }
+  else
+  {
+   w.memory["MYUSER"] = _um.Users.FirstOrDefault(u => u.id == id) ?? new UserManagementObject();
+   w.Title = (_um.Users.FirstOrDefault(u => u.id == id) ?? new UserManagementObject()).username;
+  }
+
+  WindowManager.openPage(w);
+ }
+
+ private async void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.type == windowEvent.WindowEventType.closed || we.type == windowEvent.WindowEventType.minimized)
+  {
+   WindowManager.WindowChanged -= handleWindowChange;
+   return;
+  }
+ }
+}

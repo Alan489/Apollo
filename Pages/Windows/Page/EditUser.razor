@@ -1,0 +1,287 @@
+﻿@using Apollo2.Shared.Sys
+@using Apollo2.Sys.Management
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Pages.Components
+@using Apollo2.Sys
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.Data.Units
+@using Apollo2.Shared.Sys.User
+@inject UserManagement _um
+@inject HttpClient _http
+
+<div class="ROOT">
+ <div class="HEADER">
+  <div class="TITLE">
+   @para.Title
+  </div>
+  <div class="CONTROLS">
+   <button class="DISCARD" @onclick="discard">CLOSE</button>
+  </div>
+ </div>
+
+ <div class="BODY">
+
+  @if (myUser.id == -1)
+  {
+   <div class="LINE0">
+    <div class="LABEL">
+     Login
+    </div>
+    <div class="USRLOCKED">
+     <input type="text" @bind="myUser.username" />
+    </div>
+
+   </div>
+  }
+
+  <div class="LINE0">
+   <div class="LABEL">
+    Name
+   </div>
+   <div class="USRLOCKED">
+    <input type="text" @bind="name" />
+   </div>
+   @if (myUser.id != -1)
+   {
+    <button class="SAVE" @onclick="saveName">Update Name</button>
+   }
+
+  </div>
+
+  <div class="LINE0">
+   <div class="LABEL">
+    Access Level
+   </div>
+   <div class="USRLOCKED">
+    <input type="number" @bind="access" />
+   </div>
+   
+   @if (myUser.id != -1)
+   {
+    <button class="SAVE" @onclick="saveAccess">Update Access</button>
+   }
+
+  </div>
+
+
+  <div class="LINE1">
+
+   <div class="USRLOCKED">
+    <input type="checkbox" @bind="isLocked" />
+   </div>
+   <div class="LABEL">
+    Locked
+   </div>
+
+  </div>
+  <div class="LINE2">
+   <div class="USREXPRD">
+    <input type="checkbox" @bind="isExpired" />
+   </div>
+   <div class="LABEL">
+    Password Expired
+   </div>
+  </div>
+
+  <div class="LINE3">
+   @if (generatedPassword == "")
+   {
+    <div class="GENPWCONTAINER">
+     <button class="GENPW" @onclick = "generateNewPassword">Generate New Password</button>
+    </div>
+   }else{
+    <span>
+     New Password:
+    </span>
+    <span class="GENERATEDPASSWORD">
+     @generatedPassword
+    </span>
+   }
+
+  </div>
+
+  <div class="LINE4">
+
+   @if (myUser.id == -1 && generatedPassword != "" && myUser.username != "")
+   {
+    <button class="SAVE" @onclick="saveclose">Save user & close</button>
+   }
+
+  </div>
+
+
+ </div>
+</div>
+
+@code {
+ [Parameter]
+ public required Window para { get; set; }
+
+ private static Random random = new Random();
+
+ private UserManagementObject myUser
+ {
+  get
+  {
+   return (UserManagementObject)para.memory["MYUSER"];
+  }
+ }
+
+ private bool nameUpdated = false;
+
+ private string name
+ {
+  get
+  {
+   return myUser.name;
+  }
+  set
+  {
+   myUser.name = value;
+   nameUpdated = true;
+   StateHasChanged();
+  }
+ }
+
+ private bool isLocked
+ {
+  get
+  {
+   return myUser.locked_out != 0;
+  }
+  set
+  {
+   if (value)
+    myUser.locked_out = 1;
+   else
+    myUser.locked_out = 0;
+   setLock();
+  }
+ }
+
+ private bool isExpired
+ {
+  get
+  {
+   return myUser.change_password != 0;
+  }
+  set
+  {
+   if (value)
+    myUser.change_password = 1;
+   else
+    myUser.change_password = 0;
+   setExpired();
+  }
+ }
+
+ private bool accessUpdated = false;
+
+ private int access
+ {
+  get
+  {
+   return myUser.access_level;
+  }
+  set
+  {
+   accessUpdated = true;
+   StateHasChanged();
+   myUser.access_level = value;
+  }
+ }
+
+ private string generatedPassword = "";
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleWindowChange;
+  StateHasChanged();
+ }
+
+ private void discard()
+ {
+  WindowManager.closePage(para);
+ }
+
+ //API/Sys/User/User/post/setpw/{myUser.id}/{hashword}
+ private void generateNewPassword()
+ {
+  const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  generatedPassword = new string(Enumerable.Repeat(chars, 6)
+      .Select(s => s[random.Next(s.Length)]).ToArray());
+
+  if (!isExpired)
+   isExpired = true;
+
+  if (myUser.id != -1)
+  {
+   string hashword = Crypt.getHash(generatedPassword + myUser.username);
+   _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Sys/User/User/post/setpw/{myUser.id}/{hashword}", SystemInformation.session);
+  }
+
+  StateHasChanged();
+
+ }
+
+ //API/Sys/User/User/post/lock/{myUser.id}/{myUser.locked_out}
+ private void setLock()
+ {
+  if (myUser.id != -1)
+   _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Sys/User/User/post/lock/{myUser.id}/{myUser.locked_out}", SystemInformation.session);
+ }
+
+ //API/Sys/User/User/post/expired/{myUser.id}/{myUser.change_password}
+ private void setExpired()
+ {
+  if (myUser.id != -1)
+   _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Sys/User/User/post/expired/{myUser.id}/{myUser.change_password}", SystemInformation.session);
+ }
+
+ //API/Sys/User/User/post/name/{myUser.id}/{myUser.name}
+ private void saveName()
+ {
+  if (myUser.id != -1)
+   _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Sys/User/User/post/name/{myUser.id}/{myUser.name}", SystemInformation.session);
+ }
+
+ //API/Sys/User/User/post/access/{myUser.id}/{myUser.access}
+ private void saveAccess()
+ {
+  if (myUser.id != -1)
+   _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Sys/User/User/post/access/{myUser.id}/{myUser.access_level}", SystemInformation.session);
+ }
+
+ //API/Sys/User/User/create
+ private void saveclose()
+ {
+  if (myUser.username == "")
+   return;
+  if (generatedPassword == "")
+   return;
+
+   myUser.generateHashword(generatedPassword);
+
+   CreateUser cu = new CreateUser();
+   cu.Session = SystemInformation.session;
+   cu.umo = myUser;
+
+  _http.PostAsJsonAsync<CreateUser>(SystemInformation.sysURL + $"/API/Sys/User/User/create", cu);
+
+  WindowManager.closePage(para);
+ }
+
+
+ private async void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.type == windowEvent.WindowEventType.closed || we.type == windowEvent.WindowEventType.minimized)
+  {
+   WindowManager.WindowChanged -= handleWindowChange;
+   return;
+  }
+ }
+}

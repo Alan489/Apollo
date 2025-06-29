@@ -1,0 +1,356 @@
+﻿.IncsRoot {
+  height: 100%;
+  overflow: clip;
+  display: flex;
+  flex-direction: column;
+}
+
+.IncsHeader {
+  display: flex;
+  color: #999;
+  border-bottom: 2px solid #666;
+  margin-bottom: 6px;
+}
+
+.TITLE {
+  flex: 1;
+  font-size: 2em;
+  text-shadow: 1px 1px 2px black;
+}
+
+.DISCARD {
+  line-height: 1em;
+  border: 1px solid #777;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #777;
+  font-family: "Noto Sans Mono", monospace;
+  margin-left: 10px;
+  margin-top: -13px;
+}
+
+.CLOSE {
+  line-height: 2em;
+}
+
+  .CLOSE button {
+    line-height: 1em;
+    border: 1px solid #A55;
+    border-radius: 8px;
+    background-color: #3a3a3a;
+    color: #A55;
+    font-family: "Noto Sans Mono", monospace;
+  }
+
+.IncsBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0px;
+}
+
+.IncsContainer {
+  display: flex;
+  flex-direction: column;
+  justify-items: center;
+  flex: 0 0 60%;
+  overflow-y: scroll;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #666;
+}
+
+.IncidentsTable {
+  width: 98%;
+}
+
+  .IncidentsTable tr:first-child {
+    background-color: #333;
+    font-size: .75em;
+    white-space: nowrap;
+  }
+
+  .IncidentsTable td {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .IncidentsTable tr:hover:not(:first-child) {
+    background-color: rgba(255,255,255,.1);
+  }
+
+
+
+  .IncidentsTable tr td:first-child {
+    font-size: 1em;
+    background-color: #333;
+    white-space: nowrap
+  }
+
+  .IncidentsTable tr td:last-child {
+    padding-right: 10px;
+  }
+
+  .IncidentsTable tr:last-child:hover {
+    background-color: rgba(255,255,255,.1);
+  }
+
+  .IncidentsTable td {
+    line-height: 1.7em;
+  }
+
+  .IncidentsTable tr:not(:first-child) {
+    line-height: 1em;
+    border-bottom: 1px solid #666;
+    border-right: 1px solid #666;
+  }
+
+  .IncidentsTable tr td:not(:first-child) {
+    line-height: 1.1em;
+    border-bottom: 1px solid #666;
+    border-left: 1px solid #666;
+  }
+
+  .IncidentsTable tr:first-child {
+    line-height: 1.75em;
+    border-bottom: 2px solid #666;
+  }
+
+.IncidentsTableNewIncident td {
+  color: #999;
+}
+
+.IncidentsTableHeader {
+}
+
+.noAttachedUnits {
+  background-color: rgba(120,85,35,.5);
+}
+
+.WRN {
+  background-color: rgba(120,85,35,.5);
+}
+
+.ATTN {
+  background-color: rgba(120,35,35,.5);
+}
+
+.IncsUnitOverview {
+  padding-top: 4px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+}
+
+.IncsUnitsHeader {
+  background-color: #333;
+  font-size: 1.2em;
+  white-space: nowrap;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 4px;
+}
+
+.IncsUnitContainer {
+  padding-top: 10px;
+  overflow-y: scroll;
+  padding-right: 5px;
+}
+
+.SHOWALLUNITS {
+  margin-top: 5px;
+  background: none;
+  color: white;
+  border: none;
+  line-height: 1em;
+  font-size: .75em;
+  margin-right: 3em;
+  float: right;
+}
+
+.active:hover {
+  background: rgba(85, 153, 85, .25);
+}
+
+   .active {
+    line-height: 1em;
+    border: 1px solid #595;
+    border-radius: 8px;
+    background-color: #3a3a3a;
+    color: #595;
+    font-family: "Noto Sans Mono", monospace;
+    margin-left: 10px;
+  }
+
+.inactive:hover {
+  background: rgba(170, 85, 85, .25);
+}
+.inactive {
+  line-height: 1em;
+  border: 1px solid #A55;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #A55;
+  font-family: "Noto Sans Mono", monospace;
+}
+
+.UNITDIV {
+  margin-bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid #111;
+  border-bottom: 2px solid #111;
+  border-top: 2px solid #999;
+  border-left: 2px solid #999;
+  line-height: 1em;
+  font-size: .9em;
+  white-space: nowrap;
+}
+
+.InService {
+  background-color: rgba(80,135,102,.5);
+}
+
+  .InService:hover {
+    background-color: rgba(80,135,102,.8)
+  }
+
+
+.AttachedtoIncident {
+  background-color: rgba(130,35,100,.5);
+}
+
+  .AttachedtoIncident:hover {
+    background-color: rgba(120,35,85,.8);
+  }
+
+.Busy {
+  background-color: rgba(120,85,35,.5);
+}
+
+  .Busy:hover {
+    background-color: rgba(120,85,35,.8);
+  }
+
+.OutOfService {
+  background-color: rgba(120,35,35,.5);
+}
+
+  .OutOfService:hover {
+    background-color: rgba(120,35,35,.8);
+  }
+
+
+.UNITINFO {
+  display: flex;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 2px;
+  margin-bottom: 2px;
+}
+
+.UNITDETAILS {
+  display: flex;
+  padding-bottom: 2px;
+  display: flex;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 2px;
+  margin-bottom: 2px;
+}
+
+
+
+.UNITID {
+  width: 20em;
+  margin-right: 5em;
+}
+
+.BRANCH {
+}
+
+.STATUS {
+  width: 20em;
+  margin-right: 5em;
+  
+}
+
+.ATTACHMENT {
+  border-radius: 5px;
+  padding: 2px;
+  padding-right: 5px;
+  padding-left: 5px;
+  border: 1px solid rgba(255,90,210,1);
+  background-color: rgba(75,17,50, 1);
+  color: rgba(255,90,210,1);
+}
+
+  .ATTACHMENT:hover {
+    color: white;
+    border-color: white;
+    
+  }
+
+.Busy .CHANGESTATUS {
+  border-radius: 5px;
+  padding: 2px;
+  padding-right: 5px;
+  padding-left: 5px;
+  border: 1px solid rgba(240,170,70,1);
+  background-color: rgba(60,42,17,1);
+  color: rgba(240,170,70,1);
+}
+
+.InService .CHANGESTATUS {
+  border-radius: 5px;
+  padding: 2px;
+  padding-right: 5px;
+  padding-left: 5px;
+  border: 1px solid rgba(150,200,150,1);
+  background-color: rgba(40,67,51,1);
+  color: rgba(150,200,150,1);
+}
+
+.OutOfService .CHANGESTATUS {
+  border-radius: 5px;
+  padding: 2px;
+  padding-right: 5px;
+  padding-left: 5px;
+  border: 1px solid rgba(200,70,70,1);
+  background-color: rgba(60,17,17,1);
+  color: rgba(200,70,70,1);
+}
+
+.CHANGESTATUS {
+  max-height: 1.9em;
+  max-width: 9.3em;
+  transition:  0.5s ease;
+  overflow: hidden;
+}
+
+.CHANGING {
+  max-height: 10em;
+  max-width: 30em;
+  transition: 0.5s ease;
+}
+
+.CHANGESTATUS:hover {
+  color: white;
+  border-color: white;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #3a3a3a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
