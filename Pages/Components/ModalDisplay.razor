@@ -1,0 +1,49 @@
+﻿@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using System.Timers;
+
+<div class="MODALROOT">
+ <div class="MODALCONTAINER">
+
+  @foreach(Modal modal in WindowManager.Modals)
+  {
+   <div class="@modal.type" @onclick="()=>remove(modal)">
+    <div class="TITLE">
+     @modal.title
+    </div>
+    <div class="MESSAGE">
+     @modal.message
+    </div>
+   </div>
+  }
+
+ </div>
+</div>
+
+
+@code {
+ protected override void OnInitialized()
+ {
+  SysTimers.secondTimer.Elapsed += tick;
+  base.OnInitialized();
+ }
+
+ private void remove(Modal modal)
+ {
+  WindowManager.Modals.Remove(modal);
+  StateHasChanged();
+ }
+
+ private void tick(Object? source, ElapsedEventArgs? e)
+ {
+  List<Modal> removing = new List<Modal>();
+  foreach (Modal modal in WindowManager.Modals)
+   if (modal.created < DateTime.Now.AddSeconds(-10))
+    removing.Add(modal);
+
+  foreach(Modal modal1 in removing)
+   WindowManager.Modals.Remove(modal1);
+
+   StateHasChanged();
+ }
+}

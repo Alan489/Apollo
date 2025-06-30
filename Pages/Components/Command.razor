@@ -1,0 +1,248 @@
+﻿@inject IJSRuntime JS
+@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Pages.Windows.Apps
+@using Apollo2.Pages.Windows.Page
+
+@if (open)
+{
+ <div class="ROOT">
+  <div class="HEADER">
+   Enter Command
+  </div>
+  <div class="BODY">
+   <input type="text" @ref="tb" @bind="com" @bind:event="oninput" @onkeydown="@go" />
+  </div>
+  <div class="EXIT">Control + . to exit.</div>
+ </div>
+}
+
+
+@code {
+ private static bool open { get; set; }
+ private static Command instance { get; set; }
+ private string com { get; set; } = "";
+
+ private ElementReference tb;
+
+ [JSInvokable]
+ public static void openCommand()
+ {
+  if (!open && SystemInformation.IsLoggedIn)
+  {
+   open = true;
+   instance.communications();
+   return;
+  }
+
+  open = false;
+  instance.communications();
+
+ }
+
+ private async void go(KeyboardEventArgs kea)
+ {
+  if (kea.Code == "Enter")
+  {
+   open = false;
+   StateHasChanged();
+   processCommand();
+  }
+ }
+
+ private async void communications()
+ {
+  com = "";
+  StateHasChanged();
+  if (open)
+  {
+   await tb.FocusAsync();
+   StateHasChanged();
+  }
+
+ }
+
+ private async void displayModal(string type, string title, string message)
+ {
+  Console.WriteLine($"({type}) {title}: {message}");
+  WindowManager.AddModal(type, title, message);
+ }
+
+ protected override async Task OnParametersSetAsync()
+ {
+  instance = this;
+
+  return;
+ }
+
+ private void processCommand()
+ {
+  if (com.Length == 0)
+  {
+   displayModal("ERR", "Processing Error", "Command empty.");
+   return;
+  }
+  if (com.StartsWith("."))
+  {
+   com = com.Substring(1);
+   processContextCommand(com, WindowManager.activeWindow);
+   return;
+  }
+
+  processGlobalCommand(com);
+
+
+
+ }
+
+ private void processGlobalCommand(string com)
+ {
+  string lower = com.ToLower();
+  if (lower == "call" || lower == "inc" || lower == "incident" || lower == "new" || lower == "nc" || lower == "ni")
+  {
+   WindowManager.openPage("NEWINC", "NEW INCIDENT");
+   displayModal("SUC", "Success", $"Opening a New Incident");
+   return;
+  }
+
+
+   displayModal("ERR", "Unknown Command", $"{com}");
+ }
+
+ private void processContextCommand(string arg, Window? activeWindow)
+ {
+  if (activeWindow == null)
+  {
+   displayModal("ERR", "Processing Error", "Cannot use context command with no active window.");
+   return;
+  }
+
+  switch (activeWindow.WINDOWTYPE)
+  {
+   case "INC":
+    processContextCommandIncident(com, activeWindow);
+    break;
+
+   case "NEWINC":
+    processContextCommandNewIncident(com, activeWindow);
+    break;
+
+   default:
+    displayModal("ERR", "Processing Error", $"Cannot use context command on window {activeWindow.Title}");
+    return;
+    break;
+  }
+
+ }
+
+ private void processContextCommandNewIncident(string com, Window activeWindow)
+ {
+
+  if (activeWindow.activeComponent == null)
+   return;
+
+  NewInc comp = (NewInc)(activeWindow.activeComponent);
+
+  if (com.ToLower() == "sc")
+  {
+
+   comp.saveclose();
+   return;
+  }
+
+  if (com.ToLower() == "s")
+  {
+
+   comp.save();
+   return;
+  }
+
+  if (com.ToLower() == "d")
+  {
+   displayModal("WRN", "Success", "Changes Discarded.");
+   comp.close();
+
+   return;
+  }
+ }
+
+ private void processContextCommandIncident(string com, Window activeWindow)
+ {
+
+  if (activeWindow.activeComponent == null)
+   return;
+
+  Inc comp = (Inc)(activeWindow.activeComponent);
+
+  if (com.ToLower() == "sc")
+  {
+
+   comp.saveclose();
+   return;
+  }
+
+  if (com.ToLower() == "s")
+  {
+
+   comp.save();
+   return;
+  }
+
+  if (com.ToLower() == "d")
+  {
+   displayModal("WRN", "Success", "Changes Discarded.");
+   comp.close();
+
+   return;
+  }
+
+  if (com.ToLower().StartsWith("a/") || com.ToLower().StartsWith("a "))
+  {
+   if (!comp.attachUnit(com.Substring(2)))
+    WindowManager.AddModal("ERR", "Unable to attach unit", $"\"{com.Substring(2)}\"");
+    return;
+  }
+
+  if (com.ToLower().StartsWith("os/") || com.ToLower().StartsWith("os "))
+  {
+   if (!comp.onScene(com.Substring(3)))
+    WindowManager.AddModal("ERR", "Unable to update unit staus", $"\"{com.Substring(3)}\"");
+   else
+    WindowManager.AddModal("SUC", "Success", com.Substring(3) + " On Scene");
+    return;
+  }
+
+  if (com.ToLower().StartsWith("t/") || com.ToLower().StartsWith("t "))
+  {
+   if (!comp.transporting(com.Substring(2)))
+    WindowManager.AddModal("ERR", "Unable to update unit staus", $"\"{com.Substring(2)}\"");
+   else
+    WindowManager.AddModal("SUC", "Success", com.Substring(2) + " Transporting");
+   return;
+  }
+
+  if (com.ToLower().StartsWith("d/") || com.ToLower().StartsWith("d "))
+  {
+   if (!comp.destination(com.Substring(2)))
+    WindowManager.AddModal("ERR", "Unable to update unit staus", $"\"{com.Substring(2)}\"");
+   else
+    WindowManager.AddModal("SUC", "Success", com.Substring(2) + " At Destination");
+   return;
+  }
+
+  if (com.ToLower().StartsWith("c/") || com.ToLower().StartsWith("c "))
+  {
+   if (!comp.clear(com.Substring(2)))
+    WindowManager.AddModal("ERR", "Unable to update unit staus", $"\"{com.Substring(2)}\"");
+   else
+    WindowManager.AddModal("SUC", "Success", com.Substring(2) + " Clear");
+   return;
+  }
+
+
+  WindowManager.AddModal("ERR", "Unknown command", $"\"{com}\"");
+
+ }
+
+
+}

@@ -1,10 +1,12 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager _navi
+@using Apollo2.Pages.Components
 @using Apollo2.Sys
 <div class="page">
 
  <main>
   <article class="content px-4">
+    <ModalDisplay/>
    @Body
   </article>
  </main>

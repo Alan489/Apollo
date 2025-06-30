@@ -127,9 +127,7 @@
    i++;
   }
 
-  //await _store.SetItemAsStringAsync("DRAGGINGMEM", json);
-  Console.WriteLine(JsonSerializer.Deserialize<Dictionary<string,object>>(JsonSerializer.SerializeToUtf8Bytes(w.memory)));
-
+  
  }
 
  private async void clearDragging()
@@ -151,7 +149,6 @@
   Thread.Yield();
   Thread.Sleep(75);
   Thread.Yield();
-  Console.WriteLine("Contains key: " + await _store.ContainKeyAsync("CONSUMED"));
 
   string? s = null;
   int retries = 0;
@@ -172,7 +169,6 @@
    return;
   }
 
-  Console.WriteLine("Contains key: " + await _store.ContainKeyAsync("CONSUMED"));
   
   if (s == null)
   {
@@ -182,11 +178,6 @@
   string[] b = s.Split("//");
   if (b.Length != 2)
    return;
-
-   Console.WriteLine("My Window " + SystemInformation.windowid);
-   Console.WriteLine("Receiving Window " + b[1]);
-   Console.WriteLine("My Window ID " + w.ID);
-   Console.WriteLine("Consumed Window ID " + b[0]);
 
   if (b[1] == SystemInformation.windowid) { await _store.RemoveItemAsync("CONSUMED"); clearDragging(); return; }
 

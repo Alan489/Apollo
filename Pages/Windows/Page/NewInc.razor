@@ -64,7 +64,7 @@
      }
      else
      {
-      <input type="text" @bind-value='myIncident.location' maxlength="80" />
+      <input type="text" @bind-value='myIncident.location' @ref='address' maxlength="80" />
      }
     </div>
     <div class="Detail">
@@ -190,6 +190,8 @@
 
  [Parameter]
  public required Window para { get; set; }
+
+ private ElementReference address;
 
  private string typ
  {
@@ -368,7 +370,7 @@
  private bool errorOccured = false;
 
 
- private void close()
+ public void close()
  {
   WindowManager.closePage(para);
  }
@@ -380,6 +382,8 @@
   if (para.firstRender)
    await forceUpdate();
   para.firstRender = false;
+  para.activeComponent = this;
+  address.FocusAsync();
 
   if (!para.memory.ContainsKey("LOCKED"))
    lck = false;
@@ -438,7 +442,7 @@
  }
 
 
- private async Task save(bool ovr = false)
+ public async Task save(bool ovr = false)
  {
   if (lck && !ovr) return;
   StateHasChanged();
@@ -473,7 +477,7 @@
   return;
  }
 
- private async Task saveclose()
+ public async Task saveclose()
  {
   if (lck) return;
   lck = true;

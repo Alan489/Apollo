@@ -1,0 +1,54 @@
+﻿.MODALROOT {
+  position:absolute;
+  left: 0px;
+  top: 0px;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  z-index:100;
+
+}
+
+.MODALCONTAINER {
+  position: absolute;
+  height: 40%;
+  width: 15em;
+  right: 10px;
+  top: 50px;
+  overflow-y: hidden;
+  padding: 5px;
+}
+
+.ERR,
+.WRN,
+.SUC {
+  margin-top: 10px;
+  border-bottom: 1px solid #666;
+  pointer-events: auto;
+  box-shadow: 2px 2px 2px black;
+  border-radius: 5px;
+  padding: 5px;
+  overflow-x: hidden;
+}
+
+.SUC {
+  background-color: rgba(80,135,102,.5);
+}
+  .SUC:hover {
+    background-color: rgba(80,135,102,.8);
+  }
+
+.WRN {
+  background-color: rgba(120,85,35,.5);
+}
+
+  .WRN:hover {
+    background-color: rgba(120,85,35,.8);
+  }
+
+.ERR {
+  background-color: rgba(120,35,35,.5);
+}
+.ERR:hover {
+  background-color: rgba(120,35,35,.8);
+}

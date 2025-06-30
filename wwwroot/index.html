@@ -54,10 +54,11 @@
       document.addEventListener("mouseup", onMouseUp);
     };
 
-
-    window.addEventListener("window-dropped", (e) => {
-      console.log("dropped.");
-    });
+    window.addEventListener('keyup', (e) => {
+      if (e.ctrlKey && e.key == '.')
+       DotNet.invokeMethodAsync('Apollo2', 'openCommand');
+    })
+    
 
   </script>
   <div id="app">

@@ -612,14 +612,16 @@
  private bool errorOccured = false;
 
 
- private void close()
+ public void close()
  {
   WindowManager.closePage(para);
+
  }
 
  protected override async Task OnParametersSetAsync()
  {
   base.OnParametersSet();
+  para.activeComponent = this;
   WindowManager.WindowChanged += handleWindowChange;
   Incidents.incidentsUpdated += handleIncUpdated;
   Units.unitsUpdated += handleUnitsUpdated;
@@ -723,7 +725,7 @@
   }
  }
 
- private async Task save(bool ovr = false)
+ public async Task save(bool ovr = false)
  {
   if (lck && !ovr) return;
   StateHasChanged();
@@ -743,6 +745,7 @@
    var respa = await _http.PostAsJsonAsync<SaveIncidentRequest>(SystemInformation.sysURL + "/API/Incidents/Incidents/post/save", sira);
 
    para.memory["LOCKED"] = "yes";
+   WindowManager.AddModal("SUC", para.Title, "Closed incident.");
 
    return;
   }
@@ -754,7 +757,7 @@
   sir.incident = (Incident)para.memory["MYINCIDENT"];
 
   var resp = await _http.PostAsJsonAsync<SaveIncidentRequest>(SystemInformation.sysURL + "/API/Incidents/Incidents/post/save", sir);
-
+  WindowManager.AddModal("SUC", para.Title, "Saved Incident");
 
 
 
@@ -767,7 +770,7 @@
  }
 
 
- private async Task saveclose()
+ public async Task saveclose()
  {
   if (lck) return;
   lck = true;
@@ -822,10 +825,79 @@
   StateHasChanged();
  }
 
- private async void selectUnit(string u)
+ public bool attachUnit(string u)
+ {
+  UnitGlance? ug = Units.units.FirstOrDefault(un => un.status == "In Service" && un.unit.ToLower() == u.ToLower());
+  if (ug == null) return false;
+
+  selectUnit(ug.unit, true);
+
+
+  return true;
+ }
+
+ 
+
+ public bool onScene(string u)
+ {
+  UnitAttachment? ua = attachments.FirstOrDefault(
+    un => un.unit.ToLower() == u.ToLower()
+    && (un.arrival_time == null || un.arrival_time < DateTime.Now.AddYears(-250)));
+
+  if (ua == null) return false;
+
+  sendUnitStatus(ua.attachmentID, "arrived");
+
+
+  return true;
+ }
+
+ public bool transporting(string u)
+ {
+  UnitAttachment? ua = attachments.FirstOrDefault(
+    un => un.unit.ToLower() == u.ToLower()
+    && (un.transport_time == null || un.transport_time < DateTime.Now.AddYears(-250)));
+
+  if (ua == null) return false;
+
+  sendUnitStatus(ua.attachmentID, "transport");
+
+
+  return true;
+ }
+
+ public bool destination(string u)
+ {
+  UnitAttachment? ua = attachments.FirstOrDefault(
+    un => un.unit.ToLower() == u.ToLower()
+    && (un.transportdone_time == null || un.transportdone_time < DateTime.Now.AddYears(-250)));
+
+  if (ua == null) return false;
+
+  sendUnitStatus(ua.attachmentID, "transportdone");
+
+
+  return true;
+ }
+
+ public bool clear(string u)
+ {
+  UnitAttachment? ua = attachments.FirstOrDefault(
+    un => un.unit.ToLower() == u.ToLower()
+    && (un.cleared_time == null || un.cleared_time < DateTime.Now.AddYears(-250)));
+
+  if (ua == null) return false;
+
+  sendUnitStatus(ua.attachmentID, "cleared");
+
+
+  return true;
+ }
+
+ private async void selectUnit(string u, bool isCommand = false)
  {
 
-  if (attachingUnit)
+  if (attachingUnit || isCommand)
   {
    lck = true;
    attachingUnit = false;
@@ -837,7 +909,7 @@
     myIncident.ts_dispatch = DateTime.Now;
     await save(true);
    }
-
+   WindowManager.AddModal("SUC", para.Title, "Attached " + u);
    await updateAttchments();
    await _unitsService.reqUpdate();
    lck = false;

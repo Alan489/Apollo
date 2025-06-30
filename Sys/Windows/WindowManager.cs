@@ -4,7 +4,7 @@
  {
   public static Window? activeWindow = null;
   public static List<Window> Windows = new List<Window>();
-
+  public static List<Modal> Modals = new List<Modal>();
 
   public delegate void WindowChangeEventHandler(windowEvent we);
 
@@ -99,6 +99,17 @@
    WindowChanged?.Invoke(we);
   }
 
+  //pointer-events:none
+  public static void AddModal(string type, string title, string message)
+  {
+   Modal m = new Modal();
+   m.type = type;
+   m.title = title;
+   m.message = message;
+   m.created = DateTime.Now;
+   Modals.Add(m);
+  }
+
   public static void Minimize(Window window)
   {
    if (activeWindow == window)
@@ -154,6 +165,14 @@
   }
 
 
+ }
+
+ public class Modal
+ {
+  public DateTime created;
+  public string type;
+  public string title;
+  public string message;
  }
 
   public class windowEvent
