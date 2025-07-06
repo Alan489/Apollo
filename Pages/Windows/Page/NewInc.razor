@@ -58,14 +58,7 @@
      <div class="DetailLabel">
       Address
      </div>
-     @if (lck)
-     {
-      <input type="text" @bind-value='myIncident.location' disabled />
-     }
-     else
-     {
       <input type="text" @bind-value='myIncident.location' @ref='address' maxlength="80" />
-     }
     </div>
     <div class="Detail">
      <div class="DetailLabel">
@@ -383,7 +376,7 @@
    await forceUpdate();
   para.firstRender = false;
   para.activeComponent = this;
-  address.FocusAsync();
+
 
   if (!para.memory.ContainsKey("LOCKED"))
    lck = false;
@@ -439,6 +432,15 @@
   if (!para.memory.ContainsKey("LOCKED"))
    lck = false;
   StateHasChanged();
+ }
+
+ protected override Task OnAfterRenderAsync(bool firstRender)
+ {
+
+   if (firstRender)
+   address.FocusAsync();
+
+  return base.OnAfterRenderAsync(firstRender);
  }
 
 

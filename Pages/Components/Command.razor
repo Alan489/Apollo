@@ -1,10 +1,16 @@
 ﻿@inject IJSRuntime JS
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.Data.Units
+@using Apollo2.Shared.Sys.User
 @using Apollo2.Sys
+@using Apollo2.Sys.Data
 @using Apollo2.Sys.Windows
 @using Apollo2.Pages.Windows.Apps
 @using Apollo2.Pages.Windows.Page
+@inject HttpClient _http
+@inject Units _units
 
-@if (open)
+@if (open && SystemInformation.IsLoggedIn)
 {
  <div class="ROOT">
   <div class="HEADER">
@@ -91,8 +97,107 @@
 
   processGlobalCommand(com);
 
+ }
+
+ private void openIncident(int inc)
+ {
+  Incident? a = Incidents.incidents.FirstOrDefault(k => k.incident_id == inc);
+
+  if (a != null)
+   WindowManager.openPage("INC", "INC#" + a.call_number, "" + a.incident_id);
+ }
+
+ private void processUnitCommand(string com)
+ {
+  string[] fullyBroke = com.Substring(1).Trim().Split('/');
+  if (fullyBroke[0] == com.Substring(1))
+   fullyBroke = com.Substring(1).Trim().Split(' ');
+
+  // if (fullyBroke[0] == com.Substring(1))
+  // {
+  //  displayModal("ERR", "Processing Error", $"Unable to process \"{com}\"");
+  //  return;
+  // }
+  UnitGlance? unit = GetUnitGlance(fullyBroke[0]);
+  if (unit == null)
+   return;
+
+  if (fullyBroke.Length == 1)
+  {
+   WindowManager.openPage("UnitEdit", "Unit " + unit.unit, unit.unit);
+   return;
+  }
+
+  if (fullyBroke[1].ToLower() == "i")
+  {
+   if (unit.attachment == null)
+   {
+    displayModal("WRN", "Not attached", $"Unit {unit.unit} is not attached to a call.");
+    return;
+   }
+   displayModal("SUC", "Opening Incident", $"Unit {unit.unit} is attached INC#" + unit.attachment);
+   openIncident(unit.incID);
+   return;
+  }
+
+  if (fullyBroke[1].ToLower() == "a")
+  {
+   if (fullyBroke.Length != 3)
+   {
+    displayModal("ERR", "Argument", $"Invalid number of arguments. (Expected 1. Got " + (fullyBroke.Length-2) + ")");
+    return;
+   }
+   if (unit.attachment != null || unit.status != "In Service")
+   {
+    displayModal("ERR", "Not In Service", $"Unit {unit.unit} is not available for calls");
+    return;
+   }
 
 
+   UnitGlance? unit2 = GetUnitGlance(fullyBroke[2]);
+
+   if (unit2 == null)
+    return;
+
+   if (unit2.attachment == null)
+   {
+    displayModal("ERR", "No Incident", $"Unit {unit2.unit} is not attached to an incident.");
+    return;
+   }
+
+   _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Units/Units/new/attachment/{unit2.incID}/{unit.unit}", SystemInformation.session);
+
+    displayModal("SUC", "Success", $"Attached Unit {unit.unit} to INC#{unit2.attachment}");
+    _units.reqUpdate();
+    return;
+  }
+
+  displayModal("ERR", "Unknown Command", $"{com}");
+  return;
+ }
+
+ private UnitGlance? GetUnitGlance(string u)
+ {
+  u = u.ToLower();
+  UnitGlance? ug = Units.units.FirstOrDefault(un => un.unit.ToLower() == u);
+  if (ug != null)
+   return ug;
+  if (Units.units.Where(un => un.unit.ToLower().StartsWith(u)).Count() == 1)
+   return Units.units.FirstOrDefault(un => un.unit.ToLower().StartsWith(u));
+  if (Units.units.Where(un => un.unit.ToLower().EndsWith(u)).Count() == 1)
+   return Units.units.FirstOrDefault(un => un.unit.ToLower().EndsWith(u));
+
+  if (
+    Units.units.Where(un => un.unit.ToLower().EndsWith(u)).Count() > 1 ||
+    Units.units.Where(un => un.unit.ToLower().StartsWith(u)).Count() > 1
+  )
+  {
+   displayModal("ERR", "Unable to find unit", $"Dubious unit {u}");
+   return null;
+  }
+
+  displayModal("ERR", "Unable to find unit", $"Unknown unit {u}");
+  return null;
  }
 
  private void processGlobalCommand(string com)
@@ -105,8 +210,15 @@
    return;
   }
 
+  if (lower.StartsWith("/"))
+  {
+   processUnitCommand(com);
+   return;
+  }
+
 
    displayModal("ERR", "Unknown Command", $"{com}");
+   
  }
 
  private void processContextCommand(string arg, Window? activeWindow)
@@ -164,6 +276,7 @@
 
    return;
   }
+  WindowManager.AddModal("ERR", "Unknown command", $"\"{com}\"");
  }
 
  private void processContextCommandIncident(string com, Window activeWindow)

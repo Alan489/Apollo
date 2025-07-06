@@ -251,7 +251,7 @@
      </div>
      <div class="NotesContainer">
       <div class="AddNotesArea">
-       <input class="NOTESENTER" @bind-value="notesValue" @onkeydown="(KeyboardEventArgs e) => {Enter(e,notesValue);}"/>
+       <input class="NOTESENTER" @bind="notesValue" @bind:event="oninput" @onkeydown="(KeyboardEventArgs e) => { Enter(e, notesValue); }" />
        <div class="NOTESCONTROL">
         @if (string.IsNullOrEmpty(selectedNotesUnit))
         {
