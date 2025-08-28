@@ -60,6 +60,10 @@
     Login
    </button>
 
+   <button class="logonButton" @onclick="tryMDTLogon">
+    MDT Login
+   </button>
+
   </div>
   <div class="@returnMessageClasses">
    @returnMessage
@@ -178,6 +182,115 @@
     throw new Exception("Invalid Response");
   }
   catch(Exception ex)
+  {
+   returnMessage = $"Unable to connect to server: {system}";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   Console.WriteLine(ex);
+   return;
+  }
+
+  if (ulr.successful == false)
+  {
+   returnMessage = $"{ulr.errorMessage}";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  if (ulr.successful)
+  {
+   if (ulr.errorMessage == "CHANGEPASSWORD")
+   {
+    token.hash = password;
+    SystemInformation.token = token;
+    SystemInformation.sysURL = system;
+    returnMessage = "Password Expired.";
+    WindowManager.AddModal("ERR", "Password Expired", "Please change your password.");
+    _navi.NavigateTo("/Unauthorized/ChangePassword/expired");
+    return;
+   }
+   else
+    returnMessage = "Success!";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageSuccess";
+   StateHasChanged();
+   //debounce = false;
+
+   SystemInformation.token = token;
+   SystemInformation.session = ulr.session;
+   SystemInformation.sysURL = sysTemp;
+   await _sys.save();
+
+   _navi.NavigateTo("/CAD");
+   return;
+  }
+
+ }
+
+ private async Task tryMDTLogon()
+ {
+  if (debounce) return;
+  debounce = true;
+
+  if (string.IsNullOrEmpty(system))
+  {
+   returnMessage = "System Address cannot be left blank.";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  Regex mustmatch = new Regex("^([a-z0-9]+((\\.[a-z0-9]+)?)+)(:[0-9]+)?$");
+  Match match = mustmatch.Match(system);
+
+  if (!match.Success)
+  {
+   returnMessage = "System Address: Please provide a valid URL.";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  if (string.IsNullOrEmpty(username))
+  {
+   returnMessage = "Username cannot be left blank.";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  if (string.IsNullOrEmpty(password))
+  {
+   returnMessage = "Password cannot be left blank.";
+   returnMessageClasses = "logonReturnMessage logonReturnMessageError";
+   StateHasChanged();
+   debounce = false;
+   return;
+  }
+
+  string sysTemp = "https://" + system;
+
+
+  Token token = new Token(username, password);
+
+  returnMessage = $"Logging in as {username}@{system}";
+  returnMessageClasses = "logonReturnMessage";
+  StateHasChanged();
+
+  UserLoginResponse? ulr;
+  try
+  {
+   var resp = await _http.PostAsJsonAsync<Token>(sysTemp + "/API/Sys/Unit/Login", token);
+   ulr = await resp.Content.ReadFromJsonAsync<UserLoginResponse?>();
+   if (ulr == null)
+    throw new Exception("Invalid Response");
+  }
+  catch (Exception ex)
   {
    returnMessage = $"Unable to connect to server: {system}";
    returnMessageClasses = "logonReturnMessage logonReturnMessageError";

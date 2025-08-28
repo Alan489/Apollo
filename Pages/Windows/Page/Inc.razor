@@ -49,7 +49,7 @@
  </div>
  <div class="IncBody">
 
-  @if ((attachingUnit || selectingUnit) && !lck)
+  @if (false)//(attachingUnit || selectingUnit) && !lck)
   {
    <div class="UNITSELECTION">
     <div class="UNITSELECTIONHEADER">
@@ -87,6 +87,11 @@
      </table>
     </div>
    </div>
+  }
+
+  @if ((attachingUnit || selectingUnit) && !lck)
+  {
+   
   }
 
   <div class="IncDetailArea">

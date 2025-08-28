@@ -1,0 +1,77 @@
+﻿@using Apollo2.Pages.Windows.Page
+@using Apollo2.Shared.Sys.Data.Units
+@using Apollo2.Sys.Data
+@inject IJSRuntime JS
+@inject Units _units
+
+<div class="ROOT"
+     id="dropselect">
+
+ <div class="HEADER"
+      @onmousedown="startDrag">
+  <div class="TITLE">
+   @Title
+  </div>
+  <div class="CONTROLS">
+   <button class="CLOSE" @onclick="cancel">Cancel</button>
+  </div>
+ </div>
+
+
+ <div class="BODY">
+  <input type="text" @bind-value="filter" />
+  <table>
+    @foreach(string o in Options)
+   {
+    <tr>
+      <td @onclick="()=>select(o)">@o</td>
+    </tr> 
+   }
+
+  </table>
+ </div>
+
+</div>
+
+
+@code {
+
+ [Parameter]
+ public EventCallback<string?> Callback { get; set; }
+ [Parameter]
+ public required List<string> Options{ get; set; }
+ [Parameter]
+ public required string Title {get;set;}
+
+
+
+ private string filter = "";
+ int page = 0;
+
+ private ElementReference root;
+
+ private bool isDragging = false;
+
+ private void select(string s)
+ {
+  Callback.InvokeAsync(s);
+ }
+
+
+ private int getNumPages()
+ {
+  return 0;
+ }
+
+
+ private void cancel()
+ {
+  Callback.InvokeAsync(null);
+ }
+
+ private async Task startDrag(MouseEventArgs e)
+ {
+  await JS.InvokeVoidAsync("drag", "dropselect", e.ClientX, e.ClientY);
+ }
+
+}

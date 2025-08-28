@@ -28,4 +28,9 @@
     <ProjectReference Include="Apollo2.Shared\Apollo2.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Pages\MDT\Components\" />
+    <Folder Include="Pages\MDT\Pages\" />
+  </ItemGroup>
+
 </Project>
