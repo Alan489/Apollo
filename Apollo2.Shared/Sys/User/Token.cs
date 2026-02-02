@@ -22,7 +22,7 @@ namespace Apollo2.Shared.Sys.User
    this.username = username;
    expiration = DateTime.UtcNow.AddDays(2);
 
-   hash = Crypt.getHash(password + expiration.ToString("hh:mm:ss dd/mm/yyyy"));
+   hash = Crypt.getHash(password + expiration.ToString("hh:mm:ss dd/MM/yyyy"));
   }
 
   public TokenValidationResponse verify(string hashword)
@@ -36,7 +36,7 @@ namespace Apollo2.Shared.Sys.User
     return tvr;
    }
 
-   string hashTest = Crypt.getHash(hashword + expiration.ToString("hh:mm:ss dd/mm/yyyy"));
+   string hashTest = Crypt.getHash(hashword + expiration.ToString("hh:mm:ss dd/MM/yyyy"));
 
    if (hashTest != hash)
    {

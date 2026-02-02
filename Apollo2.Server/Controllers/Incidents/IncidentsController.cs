@@ -30,7 +30,7 @@ namespace Apollo2.Server.Controllers.Incidents
    GetIncidentResponse gir = new GetIncidentResponse();
    ObjectResult resulting = new ObjectResult(gir);
 
-   AuthenticationResponse ar = await _auth.verifySession(sess);
+   AuthenticationResponse ar = await _auth.verifySession(sess, 0);
 
    if (ar.success == false)
    {
@@ -223,6 +223,38 @@ namespace Apollo2.Server.Controllers.Incidents
 
    return Ok();
   }
+
+  //API/Incidents/Incidents/get/paging/all/
+  //ACCESS LEVEL 0
+  [HttpPost("get/paging/all/")]
+  public async Task<IActionResult> getpages(UserSession sess)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(sess, 0);
+
+   if (ar.success == false)
+    return Unauthorized();
+
+   ObjectResult obj = new ObjectResult(await _idbc.getActivePages());
+   obj.StatusCode = 200;
+
+   return obj;
+  }
+
+  //API/Incidents/Incidents/post/paging/UNIT/INCID
+  //ACCESS LEVEL 1
+  [HttpPost("post/paging/{unit}/{incid}")]
+  public async Task<IActionResult> getpages(UserSession sess, string unit, int incid)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(sess, 1);
+
+   if (ar.success == false)
+    return Unauthorized();
+
+   await _idbc.createPage(unit, incid);
+
+   return Ok();
+  }
+
 
  }
 }

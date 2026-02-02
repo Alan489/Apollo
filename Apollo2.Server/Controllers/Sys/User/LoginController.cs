@@ -56,6 +56,20 @@ namespace Apollo2.Server.Controllers.Sys.User
     return resulting2;
    }
 
+   if (u.access_level == 0)
+   {
+    ulr.session = null;
+    ulr.successful = false;
+    ulr.errorMessage = "You are not authorized to login as a dispatcher.";
+
+    var resulting2 = new ObjectResult(ulr)
+    {
+     StatusCode = (int)HttpStatusCode.Unauthorized
+    };
+
+    return resulting2;
+   }
+
    TokenValidationResponse validation = t.verify(u.password);
    if (validation.isValid)
    {
@@ -67,6 +81,10 @@ namespace Apollo2.Server.Controllers.Sys.User
     ulr.session.Name = u.name;
     ulr.session.sysName = Program.sysName;
     ulr.session.sign(Program.mySign);
+    ulr.session.sysLat = Program.myLat;
+    ulr.session.sysLon = Program.myLong;
+    ulr.session.sysZoom = Program.myZoom;
+    ulr.session.googleLink = Program.googleLink;
 
     ulr.successful = true;
 

@@ -54,28 +54,28 @@
      Unit Management
     </button>
    </div>
-   <div class='@(
+   <!--<div class='@(
         (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "Profile")?
         "crumbactive" : "crumb"
         )' @onclick='() => openApp("Profile")'>
     <button>
      User Profile
     </button>
-   </div>
-   @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 5)
+   </div>-->
+   @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 8)
    {
     <div class='@(
-        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "SYSMANAGEMENT")?
+        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "USRMANAGEMENT")?
         "crumbactive" : "crumb"
-        )' @onclick='() => openApp("SYSMANAGEMENT")'>
+        )' @onclick='() => openApp("USRMANAGEMENT")'>
      <button>
-      System Management
+      User Management
      </button>
     </div>
 
    }
 
-   @foreach (Window w in WindowManager.Windows.Where(wa => wa.WINDOWTYPE != "IncidentsBoard" && wa.WINDOWTYPE != "UnitsBoard" && wa.WINDOWTYPE != "Profile" && wa.WINDOWTYPE != "SYSMANAGEMENT").ToList())
+   @foreach (Window w in WindowManager.Windows.Where(wa => wa.WINDOWTYPE != "IncidentsBoard" && wa.WINDOWTYPE != "UnitsBoard" && wa.WINDOWTYPE != "Profile" && wa.WINDOWTYPE != "USRMANAGEMENT").ToList())
    {
     @if (w.WINDOWTYPE == "INC" || w.WINDOWTYPE == "UnitEdit")
     {
@@ -276,6 +276,7 @@
   _sys.logout();
   StateHasChanged();
   _navi.NavigateTo("/");
+  _navi.Refresh();
  }
 
  protected override void OnInitialized()

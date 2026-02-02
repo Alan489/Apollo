@@ -28,6 +28,9 @@ namespace Apollo2.Shared.Sys.Data.Incidents
   public string? incident_status { get; set; }
   public string? unit_number { get; set; }
   public string? attachedUnits { get; set; }
+  public double lat { get; set; }
+  public double log { get; set; }
+  public string? alternate_cad { get; set; }
  }
 
 }

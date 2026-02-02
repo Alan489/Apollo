@@ -240,5 +240,62 @@ namespace Apollo2.Server.Controllers.Units
    return Ok();
   }
 
+  // API/Units/Units/getAllDetails/
+  // Access: 0
+  [HttpPost("getAllDetails")]
+  public async Task<IActionResult> getAllDetails(UserSession us)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(us, 0);
+
+   if (ar.success == false)
+    return Unauthorized();
+
+   List<Unit> allDetails = await _udbc.getAllDetails();
+
+   ObjectResult op = new ObjectResult(allDetails);
+   op.StatusCode = 200;
+
+   return op;
+  }
+
+  // API/Units/Units/postStatus/{status}
+  // Status: String in {"Busy", "InService"}
+  // Access: 0
+  [HttpPost("postStatus/{status}")]
+  public async Task<IActionResult> getAllDetails(UserSession us, string status)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(us, 0);
+
+   if (ar.success == false)
+    return Unauthorized();
+
+   Unit? u = await _udbc.getUnit(us.unitAssignment);
+
+   if (u == null)
+    return NotFound();
+
+   if (status != "Busy" && status != "InService")
+    return Unauthorized();
+
+   string stat = "";
+
+   switch (status)
+   {
+    case "InService":
+     stat = "In Service";
+     break;
+    case "Busy":
+     stat = "Busy";
+     break;
+    default:
+     stat = "InService";
+     break;
+   }
+
+   await _udbc.setStatus(u.unit, stat);
+
+   return Ok();
+  }
+
  }
 }

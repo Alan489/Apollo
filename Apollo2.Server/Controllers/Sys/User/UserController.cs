@@ -5,6 +5,8 @@ using Apollo2.Server.Sys.Obj;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using Apollo2.Server.Services;
+using Apollo2.Shared.Sys.Data.MDT;
+using Apollo2.Shared.Sys.Data.Incidents;
 
 namespace Apollo2.Server.Controllers.Sys.User
 {
@@ -14,12 +16,14 @@ namespace Apollo2.Server.Controllers.Sys.User
  {
 
   private UserDBContext _udbc;
+  private UnitDBContext _unitdb;
   private Authentication _auth;
 
-  public UserController(UserDBContext udbc, Authentication auth)
+  public UserController(UserDBContext udbc, Authentication auth, UnitDBContext unitdb)
   {
    _udbc = udbc;
    _auth = auth;
+   _unitdb = unitdb;
   }
 
   // API/Sys/User/User/changePassword
@@ -50,6 +54,20 @@ namespace Apollo2.Server.Controllers.Sys.User
     ulr.session = null;
     ulr.successful = false;
     ulr.errorMessage = "Account locked. Please contact your system administrator.";
+
+    var resulting2 = new ObjectResult(ulr)
+    {
+     StatusCode = (int)HttpStatusCode.Unauthorized
+    };
+
+    return resulting2;
+   }
+
+   if (u.access_level == 0)
+   {
+    ulr.session = null;
+    ulr.successful = false;
+    ulr.errorMessage = "You are not authorized to log in as a dispatcher.";
 
     var resulting2 = new ObjectResult(ulr)
     {
@@ -182,7 +200,7 @@ namespace Apollo2.Server.Controllers.Sys.User
 
   //API/Sys/User/User/post/access/{id}/{access}
   // ACCESS LEVEL 8
-  [HttpPost("post/access/{id}/{name}")]
+  [HttpPost("post/access/{id}/{access}")]
   public async Task<IActionResult> setName(UserSession us, int id, int access)
   {
    AuthenticationResponse authResponse = await _auth.verifySession(us, 8);
@@ -192,6 +210,60 @@ namespace Apollo2.Server.Controllers.Sys.User
    await _udbc.setUserAccess(id, access);
 
    return Ok();
+
+  }
+
+  //API/Sys/User/User/post/access/{id}/{access}
+  // ACCESS LEVEL 5
+  [HttpPost("post/assignment/{id}/{assignment}")]
+  public async Task<IActionResult> setAssignment(UserSession us, int id, string assignment)
+  {
+   AuthenticationResponse authResponse = await _auth.verifySession(us, 5);
+   if (!authResponse.success)
+    return Unauthorized();
+
+   if (assignment == "NULL")
+   await _udbc.setUserAssignment(id, null);
+   else
+    await _udbc.setUserAssignment(id, assignment);
+
+   return Ok();
+
+  }
+
+  //API/Sys/User/User/Unit/MDT/get
+  // ACCESS LEVEL 0
+  [HttpPost("Unit/MDT/get/")]
+  public async Task<IActionResult> getMDTDetails(UserSession us)
+  {
+   AuthenticationResponse authResponse = await _auth.verifySession(us, 0);
+   if (!authResponse.success)
+    return Unauthorized();
+
+   if (us.unitAssignment == null)
+   {
+    return Unauthorized();
+   }
+   MDTInformation info = new MDTInformation();
+
+   Apollo2.Shared.Sys.Data.Units.Unit? unit = await _unitdb.getUnit(us.unitAssignment);
+
+
+   if (unit == null)
+    return BadRequest();
+
+   List<IncidentNote> notes = new List<IncidentNote>();
+
+   if (unit.incident != null)
+    notes = await LogDBContext.getIncNotes(unit.incident.incident_id);
+
+   info.incidentNotes = notes;
+   info.unit = unit;
+
+   ObjectResult ret = new ObjectResult(info);
+
+
+   return ret;
 
   }
 

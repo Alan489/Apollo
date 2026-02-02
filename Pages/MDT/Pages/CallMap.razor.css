@@ -1,0 +1,48 @@
+﻿.BoardRoot {
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+}
+
+.BoardBody {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  flex-direction: column;
+
+}
+
+.BoardHeader {
+  display: flex;
+  color: #999;
+  border-bottom: 2px solid #666;
+  margin-bottom: 6px;
+
+}
+
+.TITLE {
+  flex: 1;
+  font-size: 2em;
+  text-shadow: 1px 1px 2px black;
+}
+
+#map {
+  flex:1;
+}
+
+.leaflet-container,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+gmp-map {
+  color-scheme: dark;
+}
+
+.callLabel{
+  background-color: #A55;
+}

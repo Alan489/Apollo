@@ -19,7 +19,7 @@ namespace Apollo2.Server.Controllers.Sys.Unit
    _udbc = udbc;
   }
 
-
+  // API/Sys/Unit/Login/
   [HttpPost]
   public async Task<IActionResult> tryLogin(Token t)
   {
@@ -33,6 +33,20 @@ namespace Apollo2.Server.Controllers.Sys.Unit
     ulr.session = null;
     ulr.successful = false;
     ulr.errorMessage = "Invalid username or password.";
+
+    var resulting2 = new ObjectResult(ulr)
+    {
+     StatusCode = (int)HttpStatusCode.Unauthorized
+    };
+
+    return resulting2;
+   }
+
+   if (u.access_acl == null)
+   {
+    ulr.session = null;
+    ulr.successful = false;
+    ulr.errorMessage = "Access Denied. You are not currently assigned a unit.";
 
     var resulting2 = new ObjectResult(ulr)
     {
@@ -67,6 +81,12 @@ namespace Apollo2.Server.Controllers.Sys.Unit
     ulr.session.Name = u.name;
     ulr.session.sysName = Program.sysName;
     ulr.session.sign(Program.mySign);
+    ulr.session.isMDT = true;
+    ulr.session.unitAssignment = u.access_acl;
+    ulr.session.sysLat = Program.myLat;
+    ulr.session.sysLon = Program.myLong;
+    ulr.session.sysZoom = Program.myZoom;
+    ulr.session.googleLink = Program.googleLink;
 
     ulr.successful = true;
 

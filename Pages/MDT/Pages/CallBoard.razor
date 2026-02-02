@@ -1,0 +1,250 @@
+﻿@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@using System.Timers
+@inject IJSRuntime JSRuntime
+@inject HttpClient _http
+
+<div class="BoardRoot">
+ <div class="BoardBody">
+  @if (pagingInProgress && pagingUnits.Length > 0)
+  {
+   <div class="PAGINGROOT">
+    <div class="PAGINGUNITROOT">
+      @if (!pagingUnits.Contains(','))
+     {
+      <div class="PAGINGUNITSHEADER">
+       THE FOLLOWING UNIT FOR ASSIGNMENT
+      </div>
+     } else
+     {
+      <div class="PAGINGUNITSHEADER">
+       THE FOLLOWING UNITS FOR ASSIGNMENT
+      </div>
+     }
+     <div class="PAGINGUNITSEP"/>
+
+     
+     <div class="PAGINGUNITS">
+      @pagingUnits
+     </div>
+    </div>
+    <div class="PAGINGDETAILS">
+     <table class="PAGINGDETAILSTABLE">
+      <tr>
+       <td>ADDRESS:</td>
+       <td>@pagingAddress</td>
+      </tr>
+      <tr>
+       <td>LOCATION:</td>
+       <td>@pagingLocation</td>
+      </tr>
+      <tr>
+       <td>NATURE:</td>
+       <td>@pagingNature</td>
+      </tr>
+      <tr>
+       <td>DETAILS:</td>
+       <td>@pagingDetail</td>
+      </tr>
+     </table>
+    </div>
+   </div>
+  }
+  @foreach (Unit unit in activeUnits.Where(u => u.type == "Unit" && u.status != "Out Of Service"))
+  {
+    
+   <div class=@(unit.incident == null ? "UnitContainer" : "UnitAttachedContainer")>
+    <div class="UnitHeader">
+     @unit.unit
+    </div>
+    <div class="UnitPersonnel">
+     @unit.personnel
+    </div>
+    @if (unit.incident != null)
+    {
+     <div class="UnitAssignment">
+      <div class="IncidentLocation">
+       @unit.incident.location
+      </div>
+      <div class="IncidentLocation">
+       @unit.incident.unit_number
+      </div>
+      <div class="IncidentType">
+       @unit.incident.call_type
+      </div>
+      <div class="IncidentDetails">
+       @unit.incident.call_details
+      </div>
+     </div>
+    }
+    else
+    {
+     <div class="UnitInService">
+      Unit In Service
+     </div>
+    }
+   </div>
+  }
+ </div>
+ <audio style="display:none" id="boardAlert" muted><source src="assets\audio\boardalert.mp3" /></audio>
+</div>
+
+<script>
+  window.PlayBoardAlert = function()
+  {
+   document.getElementById("boardAlert").muted = false;
+   document.getElementById("boardAlert").currentTime = 0;
+   document.getElementById('boardAlert').play();
+  }
+
+ window.StopBoardAlert = function()
+ {
+  document.getElementById("boardAlert").muted = true;
+   document.getElementById("boardAlert").currentTime = 0;
+  document.getElementById('boardAlert').pause();
+ }
+</script>
+
+@code {
+ private Dictionary<string, Incident> pagingQueue = new Dictionary<string, Incident>();
+ private Dictionary<string, Incident> currentlyPaging = new Dictionary<string, Incident>();
+ private List<Unit> activeUnits = new List<Unit>();
+
+ private bool pagingInProgress = false;
+ private bool playAudio = false;
+
+ private string pagingUnits = "";
+ private string pagingAddress = "";
+ private string pagingNature = "";
+ private string pagingDetail = "";
+ private string pagingLocation = "";
+
+ private Timer updateTimer;
+
+
+ protected override void OnInitialized()
+ {
+  SysTimers.fifteenSecondTimer.Elapsed += tick;
+  SysTimers.secondTimer.Elapsed += processQueue;
+  base.OnInitialized();
+ }
+
+ public async void tick(Object? source, ElapsedEventArgs? e)
+ {
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/get/paging/all/", SystemInformation.session);
+
+  if (resp.IsSuccessStatusCode)
+  {
+   Dictionary<string, Incident>? pages = await resp.Content.ReadFromJsonAsync<Dictionary<string, Incident>>();
+
+   if (pages == null)
+    return;
+
+   if (pages.Count != 0)
+    foreach (KeyValuePair<string, Incident> kvp in pages)
+    {
+     if (currentlyPaging.ContainsKey(kvp.Key) && currentlyPaging[kvp.Key].incident_id == kvp.Value.incident_id)
+      continue;
+     pagingQueue[kvp.Key] = kvp.Value;
+    }
+  }
+
+  resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Units/Units/getAllDetails/", SystemInformation.session);
+
+  if (resp.IsSuccessStatusCode)
+  {
+   List<Unit>? usn = await resp.Content.ReadFromJsonAsync<List<Unit>>();
+
+   if (usn == null) return;
+
+   usn.Sort(new UnitSorter());
+
+   activeUnits = usn;
+   StateHasChanged();
+
+  }
+
+ }
+
+ private class UnitSorter : IComparer<Unit>
+ {
+  public int Compare(Unit x, Unit y)
+  {
+   return x.unit.CompareTo(y.unit);
+  }
+ }
+
+ private DateTime? pagingStarted = null;
+
+ private async void processQueue(Object? source, ElapsedEventArgs? e)
+ {
+  if (pagingInProgress && DateTime.Now - pagingStarted < TimeSpan.FromSeconds(15))
+   return;
+
+  if (pagingInProgress)
+  {
+   pagingUnits = "";
+   pagingAddress = "";
+   pagingNature = "";
+   pagingDetail = "";
+   pagingLocation = "";
+   currentlyPaging.Clear();
+   StateHasChanged();
+   pagingInProgress = false;
+   return;
+  }
+
+  pagingInProgress = true;
+  try
+  {
+   if (pagingQueue.Count == 0)
+   {
+    pagingInProgress = false;
+    return;
+   }
+   KeyValuePair<string, Incident> p0 = pagingQueue.FirstOrDefault();
+   List<string> units = new List<string>();
+
+   foreach (KeyValuePair<string, Incident> kvp in pagingQueue)
+   {
+    if (kvp.Value.incident_id == p0.Value.incident_id)
+    {
+     units.Add(kvp.Key);
+     currentlyPaging.Add(kvp.Key, kvp.Value);
+    }
+   }
+   pagingUnits = "";
+
+   bool giveComma = false;
+   foreach (string unit in units)
+   {
+    if (giveComma)
+     pagingUnits += ", ";
+    else
+     giveComma = true;
+    pagingUnits += unit;
+
+
+    pagingQueue.Remove(unit);
+   }
+
+   pagingAddress = p0.Value.location;
+   pagingNature = p0.Value.call_type;
+   pagingDetail = p0.Value.call_details;
+   pagingLocation = p0.Value.location_num;
+
+   JSRuntime.InvokeAsync<string>("PlayBoardAlert");
+   pagingStarted = DateTime.Now;
+   StateHasChanged();
+
+  }
+  catch (Exception x)
+  {
+   Console.WriteLine(x);
+  }
+ }
+}

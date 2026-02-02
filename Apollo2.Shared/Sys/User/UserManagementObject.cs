@@ -17,6 +17,7 @@ namespace Apollo2.Shared.Sys.User
   public int change_password { get; set; } = 1;
   public int locked_out { get; set; } = 0;
   public int failed_login_count { get; set; } = 0;
+  public string assignment { get; set; } = "";
 
   public UserManagementObject() { }
   public void generateHashword(string password)

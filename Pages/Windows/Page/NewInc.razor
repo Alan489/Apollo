@@ -4,6 +4,8 @@
 @using Apollo2.Shared.Sys.Data.Incidents
 @using Apollo2.Shared.Sys.User
 @using Apollo2.Shared.Sys.Data.Units
+@using System.Net
+@using System.Text.Json
 @inject Incidents _incsService
 @inject Units _unitsService
 @inject HttpClient _http
@@ -49,6 +51,24 @@
  </div>
  <div class="IncBody">
 
+  @if (newAddress != null)
+  {
+   <div class="AddressConfirmationRoot">
+    <div class="AddressConfirmationHeader">
+     Address Found
+    </div>
+    <div class="AddressConfirmationAddress">
+     @newAddress
+    </div>
+    <div class="AddressConfirmationQuestion">
+     Accept changes?
+    </div>
+    <div class="AddressConfirmationButtons">
+     <button class="CLOSEBUTTON" @onclick="cancelAddress">DISCARD</button>
+     <button class="SAVEBUTTON" @onclick="acceptAddress">ACCEPT</button>
+    </div>
+   </div>
+  }
 
   <div class="IncDetailArea">
 
@@ -58,8 +78,36 @@
      <div class="DetailLabel">
       Address
      </div>
-      <input type="text" @bind-value='myIncident.location' @ref='address' maxlength="80" />
+      <input type="text" @ref="address" @bind-value='myIncident.location' maxlength="80" />
     </div>
+
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Apartment/Detailed location
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.unit_number' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.unit_number' maxlength="80" />
+     }
+    </div>
+
+
+    <div class="Detail">
+     @if (lck)
+     {
+      <button class="timerButton">Check Address</button>
+     }
+     else
+     {
+      <button class="timerButton" @onclick='checkAddress'>Check Address</button>
+     }
+    </div>
+
     <div class="Detail">
      <div class="DetailLabel">
       Details
@@ -74,6 +122,12 @@
      }
     </div>
 
+
+
+   </div>
+
+
+   <div class="IncDetailArea2">
     <div class="Detail">
      <div class="DetailLabel">
       Reporting Party
@@ -101,12 +155,6 @@
       <input type="text" @bind-value='myIncident.contact_at' maxlength="80" />
      }
     </div>
-
-   </div>
-
-
-   <div class="IncDetailArea2">
-
     <div class="Detail">
      <div class="DetailLabel">
       Call Type
@@ -127,8 +175,35 @@
       </select>
      }
     </div>
-   </div>
 
+    <div class="Detail">
+     <div class="DetailLabel">
+      Disposition
+     </div>
+     @if (attachments.FirstOrDefault(k => k.cleared_time == null) != null)
+     {
+      <div class="TextError">Release units to close.</div>
+     }
+     else
+     {
+      @if (lck)
+      {
+       <input type="text" @bind-value='myIncident.disposition' disabled />
+      }
+      else
+      {
+       <select @bind='dispo'>
+        <option value="">Not Selected</option>
+        @if (DISPOTYPES != null)
+         @foreach (string s in DISPOTYPES)
+         {
+          <option value="@s">@s</option>
+         }
+       </select>
+      }
+     }
+    </div>
+   </div>
 
    <div class="IncDetailArea3">
 
@@ -160,7 +235,8 @@
      @if (myIncident != null && myIncident.ts_complete != null && myIncident.ts_complete > DateTime.Now.AddYears(250))
      {
       <input type="text" @bind-value='myIncident.ts_complete' disabled />
-     } else
+     }
+     else
      {
       <input type="text" disabled />
      }
@@ -438,11 +514,98 @@
  {
 
    if (firstRender)
-   address.FocusAsync();
+    address.FocusAsync();
 
   return base.OnAfterRenderAsync(firstRender);
  }
 
+ private string? newAddress = null;
+ private double? lat, log;
+
+ private async Task checkAddress()
+ {
+  string baseURL = $"https://maps.googleapis.com/maps/api/geocode/json?key={SystemInformation.session.googleLink}&address=";
+  var resp = await _http.PostAsync($"{baseURL}{WebUtility.UrlEncode(myIncident.location)}", null);
+  if (!resp.IsSuccessStatusCode)
+  {
+   WindowManager.AddModal("ERR", "Fail", "Error occured checking address");
+   return;
+  }
+  JsonDocument jd = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+  try
+  {
+
+   if (jd.RootElement.GetProperty("results").GetArrayLength() == 0)
+   {
+    WindowManager.AddModal("WRN", "Error", "Address not found.");
+    return;
+   }
+
+   if (jd.RootElement.GetProperty("results").GetArrayLength() > 1)
+   {
+    WindowManager.AddModal("WRN", "Error", "Multiple results found.");
+    return;
+   }
+
+   var firstResult = jd.RootElement.GetProperty("results")[0];
+   // Example: formatted_address
+   newAddress = firstResult.GetProperty("formatted_address").GetString();
+
+   // Example: lat/lng
+   lat = firstResult
+       .GetProperty("geometry")
+       .GetProperty("location")
+       .GetProperty("lat")
+       .GetDouble();
+
+   log = firstResult
+        .GetProperty("geometry")
+        .GetProperty("location")
+        .GetProperty("lng")
+        .GetDouble();
+
+   //Console.WriteLine(newAddress);
+
+   if (string.IsNullOrEmpty(newAddress) || lat == null || log == null || lat == 0 || log == 0)
+   {
+    newAddress = null;
+    lat = 0;
+    log = 0;
+    WindowManager.AddModal("WRN", "Error", "Address not found.");
+    return;
+   }
+
+  }
+  catch (Exception e)
+  {
+   newAddress = null;
+   lat = 0;
+   log = 0;
+   WindowManager.AddModal("WRN", "Error", "Address not found.");
+   return;
+  }
+
+
+ }
+
+ private async Task cancelAddress()
+ {
+  newAddress = null;
+  lat = 0;
+  log = 0;
+  StateHasChanged();
+ }
+
+ private async Task acceptAddress()
+ {
+  myIncident.location = newAddress;
+  myIncident.lat = lat ?? 0;
+  myIncident.log = log ?? 0;
+  newAddress = null;
+  lat = 0;
+  log = 0;
+  StateHasChanged();
+ }
 
  public async Task save(bool ovr = false)
  {
@@ -465,7 +628,7 @@
    if (response == null) return;
    para.WINDOWTYPE = "INC";
    para.property = "" + response.incident_id;
-   para.Title = "INC#" + response.call_number;
+   para.Title = response.call_number;
    para.memory["MYINCIDENT"] = response;
    WindowManager.RequestRefresh();
   }
@@ -478,6 +641,8 @@
 
   return;
  }
+
+
 
  public async Task saveclose()
  {

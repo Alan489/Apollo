@@ -1,15 +1,27 @@
 ﻿@page "/mdt"
+@using Apollo2.Sys
 
 
 <PageTitle>HERMES MDT</PageTitle>
 
-<Apollo2.Pages.Components.Command />
 <div class="MDTRoot">
- <Apollo2.Pages.Components.CADHeader />
+ <Apollo2.Pages.Components.MDTHeader />
  <div class="MDTBody">
   <!--<Apollo2.Pages.Components.CADSidebar/>-->
   <div class="MDTUsable">
-   <Apollo2.Pages.Windows.MAINWINDOW />
+    @if (SystemInformation.session != null)
+    @switch(SystemInformation.session.unitAssignment)
+   {
+    case "BOARD":
+     <Apollo2.Pages.MDT.Pages.CallBoard />
+     break;
+    case "MAP":
+     <Apollo2.Pages.MDT.Pages.CallMap />
+     break;
+    default:
+     <Apollo2.Pages.MDT.Pages.MDT />
+     break;
+   }
   </div>
  </div>
 </div>

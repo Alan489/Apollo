@@ -1,7 +1,9 @@
 ﻿using Apollo2.Server.Sys.Obj;
+using Apollo2.Shared.Sys.Data.Incidents;
 using Apollo2.Shared.Sys.Data.Units;
 using MySqlConnector;
 using System.Data;
+using System.Reflection;
 
 namespace Apollo2.Server.Database
 {
@@ -342,7 +344,11 @@ WHERE a.incident_id = " + incID + ";";
 
      using var command = mysqlconnection.CreateCommand();
 
-     command.CommandText = $"SELECT unit, status, update_ts, role, type, personnel FROM units WHERE unit = @UNIT";
+     command.CommandText = @"SELECT u.unit, u.status, u.update_ts, u.role, u.type, u.personnel, ia.incident_id
+                               FROM units u 
+                                LEFT JOIN 
+                                (SELECT inc.*, iu.unit FROM incidents inc RIGHT JOIN incident_units iu ON inc.incident_id = iu.incident_id WHERE iu.cleared_time IS NULL) 
+                                AS ia ON ia.unit = u.unit WHERE u.unit = @UNIT";
      command.Parameters.AddWithValue("@UNIT", unit);
 
      var reader = await command.ExecuteReaderAsync();
@@ -362,9 +368,10 @@ WHERE a.incident_id = " + incID + ";";
        unit1.type = reader.GetString(4);
       if (!reader.IsDBNull(5))
        unit1.personnel = reader.GetString(5);
+      if (!reader.IsDBNull(6))
+       unit1.incident = await getIncidentByIncId(reader.GetInt32(6));
       return unit1;
      }
-
     }
    }
    catch (Exception ex) { Console.WriteLine(ex.ToString()); }
@@ -386,10 +393,10 @@ WHERE a.incident_id = " + incID + ";";
      command.CommandText = $"SELECT role FROM unit_roles";
 
      var reader = await command.ExecuteReaderAsync();
-     List<string> roles = new List<string>(); 
+     List<string> roles = new List<string>();
      while (reader.Read())
      {
-      
+
       roles.Add(reader.GetString(0));
 
      }
@@ -420,7 +427,7 @@ WHERE a.incident_id = " + incID + ";";
      command.Parameters.AddWithValue("@TYPE", u.type);
      command.Parameters.AddWithValue("@PERSONNEL", u.personnel);
      command.Parameters.AddWithValue("@UNIT", u.unit);
-     
+
      await command.ExecuteNonQueryAsync();
     }
    }
@@ -454,6 +461,84 @@ WHERE a.incident_id = " + incID + ";";
   }
 
 
+  private async Task<Incident?> getIncidentByIncId(int id)
+  {
+   try
+   {
+    List<Incident> incs = new List<Incident>();
 
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+
+     command.CommandText = @"SELECT incident_id,call_number,call_type,call_details,ts_opened,ts_dispatch,ts_arrival,ts_complete,location,location_num,reporting_pty,
+                             contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number,lat,log, alternate_cad
+                             FROM incidents 
+                             WHERE incident_id = @ID";
+
+     command.Parameters.AddWithValue("@ID", id);
+
+     using var reader = await command.ExecuteReaderAsync();
+     incs = IncidentsDbContext.DataReaderMapToList<Incident>(reader);
+     if (incs.Count == 0) return null;
+     return incs[0];
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex.ToString());
+    return null;
+   }
+  }
+
+  public async Task<List<Unit>> getAllDetails()
+  {
+   try
+   {
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+
+     command.CommandText = @"SELECT u.unit, u.status, u.update_ts, u.role, u.type, u.personnel, ia.incident_id
+                               FROM units u 
+                                LEFT JOIN 
+                                (SELECT inc.*, iu.unit FROM incidents inc RIGHT JOIN incident_units iu ON inc.incident_id = iu.incident_id WHERE iu.cleared_time IS NULL) 
+                                AS ia ON ia.unit = u.unit";
+
+     var reader = await command.ExecuteReaderAsync();
+
+     List<Unit> list = new List<Unit>();
+
+
+     while (reader.Read())
+     {
+      Unit u = new Unit();
+      if (!reader.IsDBNull(0))
+       u.unit = reader.GetString(0);
+      if (!reader.IsDBNull(1))
+       u.status = reader.GetString(1);
+      if (!reader.IsDBNull(2))
+       u.update_ts = reader.GetDateTime(2);
+      if (!reader.IsDBNull(3))
+       u.role = reader.GetString(3);
+      if (!reader.IsDBNull(4))
+       u.type = reader.GetString(4);
+      if (!reader.IsDBNull(5))
+       u.personnel = reader.GetString(5);
+      if (!reader.IsDBNull(6))
+       u.incident = await getIncidentByIncId(reader.GetInt32(6));
+      list.Add(u);
+     }
+
+     return list;
+
+    }
+   }
+   catch (Exception ex) { Console.WriteLine(ex.ToString()); return new List<Unit>(); }
+  }
  }
 }

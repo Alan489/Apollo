@@ -99,7 +99,7 @@ namespace Apollo2.Server.Database
      using var command = mysqlconnection.CreateCommand();
 
      command.CommandText = 
-      @"SELECT id,username,name,access_level,timeout,change_password,locked_out,failed_login_count FROM users";
+      @"SELECT id,username,name,access_level,timeout,change_password,locked_out,failed_login_count,access_acl FROM users";
 
 
 
@@ -121,10 +121,12 @@ namespace Apollo2.Server.Database
        userManagementObject.timeout = reader.GetInt32(4);
       if (!reader.IsDBNull(5))
        userManagementObject.change_password = reader.GetInt32(5);
-      if (!reader.IsDBNull(5))
-       userManagementObject.locked_out = reader.GetInt32(6);
       if (!reader.IsDBNull(6))
+       userManagementObject.locked_out = reader.GetInt32(6);
+      if (!reader.IsDBNull(7))
        userManagementObject.failed_login_count = reader.GetInt32(7);
+      if (!reader.IsDBNull(8))
+       userManagementObject.assignment = reader.GetString(8);
 
       list.Add(userManagementObject);
      }
@@ -291,6 +293,37 @@ namespace Apollo2.Server.Database
    }
 
 
+  }
+
+  public async Task setUserAssignment(int id, string? assignment)
+  {
+   try
+   {
+
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+
+     if (assignment != null)
+     {
+      command.CommandText = @"UPDATE users SET access_acl = @ASSIGNMENT WHERE id = @ID";
+      command.Parameters.AddWithValue("@ASSIGNMENT", assignment);
+     }
+     else
+      command.CommandText = @"UPDATE users SET access_acl = NULL WHERE id = @ID";
+
+
+     command.Parameters.AddWithValue("@ID", id);
+
+     await command.ExecuteNonQueryAsync();
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex.ToString());
+   }
   }
 
 

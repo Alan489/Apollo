@@ -1,0 +1,76 @@
+﻿@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@using System.Timers
+@inject HttpClient _http
+@inject IJSRuntime JSRuntime
+
+@* <link rel="stylesheet" href="/assets/leaflet/leaflet.css" />
+<script src="/assets/leaflet/leaflet.js"></script>*@
+
+
+<div class="BoardRoot">
+ <div class="BoardBody">
+  <gmp-map 
+  rendering-type="raster" 
+  heading="270" 
+  center="@SystemInformation.session.sysLat,@SystemInformation.session.sysLon" 
+  zoom="@SystemInformation.session.sysZoom"
+  map-id="48d80325ba0e741c57a7e0a4">
+   @foreach(Incident incident in incidents)
+   {
+    <gmp-advanced-marker position="@incident.lat,@incident.log" >
+      <div class="callLabel">INCIDENT</div>
+    </gmp-advanced-marker>
+   }
+  </gmp-map>
+ </div>
+</div>
+
+<script src="@($"https://maps.googleapis.com/maps/api/js?key={SystemInformation.session.googleLink}&callback=initMap&v=weekly&libraries=marker,maps,core")"
+        defer></script>
+
+
+@code {
+
+ private List<Incident> incidents = new List<Incident>();
+
+
+ protected override async Task OnInitializedAsync()
+ {
+  //await JSRuntime.InvokeAsync<string>("setMapDefault", , , SystemInformation.session.sysZoom);
+  SysTimers.fifteenSecondTimer.Elapsed += tick;
+ }
+
+
+ public async void tick(Object? source, ElapsedEventArgs? e)
+ {
+  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/get/active", SystemInformation.session);
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   return;
+  }
+
+  GetIncidentResponse? gir = null;
+
+  try
+  {
+   gir = await resp.Content.ReadFromJsonAsync<GetIncidentResponse>();
+  }
+  catch(Exception x)
+  {
+   Console.WriteLine(x);
+  }
+
+  if (gir == null)
+   return;
+
+  incidents = gir.Incidents ?? new List<Incident>();
+
+  StateHasChanged();
+ }
+}

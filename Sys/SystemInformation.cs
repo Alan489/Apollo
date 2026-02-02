@@ -25,6 +25,9 @@ namespace Apollo2.Sys
   private static string _myID = "";
 
   private static Random random = new Random();
+  public static double sysLat {get;set;}
+  public static double sysLong {get;set;}
+  public static double sysZoom {get;set;}
 
   public static string windowid
   {

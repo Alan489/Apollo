@@ -1,0 +1,86 @@
+﻿@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Sys
+@using Apollo2.Shared.Sys
+@using Apollo2.Shared.Sys.Authentication
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using System.Timers;
+@using System.Text.RegularExpressions
+@using Blazored.LocalStorage
+@using Blazored.SessionStorage
+@using System.Text.Json
+@inject NavigationManager _navi
+@inject HttpClient _http
+@inject IJSRuntime JS
+@inject SystemInformation _sys
+@inject ILocalStorageService _store
+@inject ISessionStorageService _session
+
+<div id="HEADERCONTAINER">
+
+
+ <div class="Header">
+  <div class="HeaderLeft">
+   <button class="logoutButton" @onclick="logout">Logout</button>
+  </div>
+  <div class="HeaderCenter">
+   APOLLO CAD
+  </div>
+  <div class="HeaderRight">
+   <div class="HeaderClock">
+    @time
+   </div>
+  </div>
+ </div>
+</div>
+
+@code {
+ private string time = DateTime.Now.ToString("HH:mm:ss");
+
+
+
+ private void clock(Object? source, ElapsedEventArgs? e)
+ {
+  time = DateTime.Now.ToString("HH:mm:ss");
+  this.StateHasChanged();
+ }
+
+ protected override async Task OnAfterRenderAsync(bool firstRender)
+ {
+ }
+
+ private void logout()
+ {
+  SystemInformation.session = null;
+  SystemInformation.sysURL = null;
+  SystemInformation.token = null;
+  _sys.logout();
+  StateHasChanged();
+  _navi.Refresh();
+ }
+
+ protected override void OnInitialized()
+ {
+  _navi.LocationChanged += LocationChanged;
+  SysTimers.secondTimer.Elapsed += clock;
+  base.OnInitialized();
+ }
+
+
+ private void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+ }
+
+ void LocationChanged(object? sender, LocationChangedEventArgs e)
+ {
+  Dispose();
+ }
+
+ void Dispose()
+ {
+  _navi.LocationChanged -= LocationChanged;
+  SysTimers.secondTimer.Elapsed -= clock;
+ }
+}

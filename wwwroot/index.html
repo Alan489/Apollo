@@ -15,6 +15,7 @@
 
 
 <body>
+  <script src="/assets/maps/CallMap.js"></script>
   <script>
     window.enableHorizontalScroll = (elementId) => {
       const container = document.getElementById(elementId);
@@ -27,7 +28,7 @@
         const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
         const previous = container.scrollLeft;
         container.scrollLeft += delta;
-        }, { passive: false }); // passive: false is required to call e.preventDefault()
+      }, { passive: false }); // passive: false is required to call e.preventDefault()
     };
 
     window.drag = function (elementId, startX, startY) {
@@ -35,7 +36,7 @@
       if (!el) return;
       const headerRect = document.getElementById("HEADERCONTAINER").getBoundingClientRect();
       const rect = el.getBoundingClientRect();
-      const offsetX = startX - rect.left ;
+      const offsetX = startX - rect.left;
       const offsetY = startY - rect.top + headerRect.height;
 
       function onMouseMove(e) {
@@ -56,9 +57,9 @@
 
     window.addEventListener('keyup', (e) => {
       if (e.ctrlKey && e.key == '.')
-       DotNet.invokeMethodAsync('Apollo2', 'openCommand');
+        DotNet.invokeMethodAsync('Apollo2', 'openCommand');
     })
-    
+
 
   </script>
   <div id="app">

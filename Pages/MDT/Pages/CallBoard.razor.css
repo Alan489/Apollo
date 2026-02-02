@@ -1,0 +1,151 @@
+﻿.BoardRoot {
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+}
+
+.BoardBody {
+  display: inline-flex;
+  flex: 1;
+  overflow: hidden;
+  flex-direction: column;
+  flex-flow: row wrap;
+  justify-content:center;
+}
+
+.BoardHeader {
+  display: flex;
+  color: #999;
+  border-bottom: 2px solid #666;
+  margin-bottom: 6px;
+
+}
+
+.TITLE {
+  flex: 1;
+  font-size: 2em;
+  text-shadow: 1px 1px 2px black;
+}
+
+.UnitContainer,
+.UnitAttachedContainer {
+  border-radius: 10px 0px 10px 0px;
+  padding: 5px;
+  overflow: clip;
+  margin: 8px;
+  flex: 1;
+  min-width: 24%;
+  max-width: 24%;
+  font-size: 1.1em;
+}
+
+.UnitContainer{
+  border-top: 3px solid #777;
+  border-left: 3px solid #777;
+  border-right: 3px solid #444;
+  border-bottom: 3px solid #444;
+  background-color: #333
+}
+
+.UnitAttachedContainer {
+  border-top: 3px solid #E22;
+  border-left: 3px solid #E22;
+  border-right: 3px solid #722;
+  border-bottom: 3px solid #722;
+  background-color: #322
+}
+
+.UnitHeader {
+  font-size: 1.75em;
+  margin-bottom: 2px;
+}
+
+.UnitPersonnel {
+  height: 1.5em;
+  overflow: clip;
+}
+
+.UnitAttachedContainer
+.UnitPersonnel {
+  border-bottom: 3px solid #744;
+}
+
+.UnitContainer
+.UnitPersonnel {
+  border-bottom: 3px solid #666;
+}
+
+.UnitAttachedContainer 
+.UnitHeader {
+  border-bottom: 3px solid #744;
+}
+
+.UnitContainer 
+.UnitHeader {
+  border-bottom: 3px solid #666;
+}
+
+.UnitInService {
+  flex: 1;
+  color: #777;
+  font-style: italic
+}
+
+.IncidentLocation{
+  flex: 1;
+}
+
+.PAGINGROOT {
+  display: flex;
+  flex: 1;
+  flex-direction:column;
+  position: fixed;
+  left: 25%;
+  right: 25%;
+  top: 25%;
+
+  padding: 20px;
+  background-color: rgba(60,40,40,.9);
+  border-radius: 30px 0px 30px 0px;
+  border-top: 3px solid #E22;
+  border-left: 3px solid #E22;
+  border-right: 3px solid #B22;
+  border-bottom: 3px solid #B22;
+}
+
+.PAGINGUNITROOT {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  font-size: 1.1em;
+}
+
+.PAGINGUNITSEP {
+  height: 3px;
+  background: linear-gradient(90deg,rgba(255, 0, 0, 1) 0%, rgba(255, 0, 0, 1) 26%, rgba(0, 0, 0, 0) 100%);
+}
+
+.PAGINGDETAILS {
+  margin-top: 10px;
+  flex: 5;
+}
+
+.PAGINGUNITS{
+  font-size: 1.8em
+}
+
+.PAGINGDETAILSTABLE {
+  display: flex;
+  flex-direction:column;
+}
+  .PAGINGDETAILSTABLE tr {
+    display: flex;
+    flex: 1;
+    margin-bottom: 5px;
+  }
+.PAGINGDETAILSTABLE tr td:first-child
+{
+  min-width: 15%;
+}

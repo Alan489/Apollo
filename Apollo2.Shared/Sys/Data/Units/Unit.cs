@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Apollo2.Shared.Sys.Data.Incidents;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,5 +15,6 @@ namespace Apollo2.Shared.Sys.Data.Units
   public string role { get; set; } = "";
   public string type { get; set; } = "";
   public string personnel { get; set; } = "";
+  public Incident? incident { get; set; } = null;
  }
 }

@@ -30,7 +30,10 @@
 
   <ItemGroup>
     <Folder Include="Pages\MDT\Components\" />
-    <Folder Include="Pages\MDT\Pages\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\assets\maps\CallMap.js" />
   </ItemGroup>
 
 </Project>

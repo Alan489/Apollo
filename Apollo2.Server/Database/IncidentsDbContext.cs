@@ -19,7 +19,8 @@ namespace Apollo2.Server.Database
 
      using (var command = mysqlconnection.CreateCommand())
      {
-      command.CommandText = @"SELECT incident_id,call_number,call_type,call_details,ts_opened,ts_dispatch,ts_arrival,ts_complete,location,location_num,reporting_pty,contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number FROM incidents WHERE disposition IS NULL OR disposition = '';";
+      command.CommandText = @"SELECT incident_id,call_number,call_type,call_details,ts_opened,ts_dispatch,ts_arrival,ts_complete,location,location_num,reporting_pty,contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number,lat,log,alternate_cad FROM incidents WHERE disposition IS NULL OR disposition = '';";
+      //Console.WriteLine(command.CommandText);
       using var reader = await command.ExecuteReaderAsync();
       incidents = DataReaderMapToList<Incident>(reader);
      }
@@ -69,7 +70,7 @@ namespace Apollo2.Server.Database
       //Console.WriteLine(command.CommandText);
       command.ExecuteNonQuery();
 
-      
+
      }
     }
    }
@@ -89,7 +90,7 @@ namespace Apollo2.Server.Database
 
      using (var command = mysqlconnection.CreateCommand())
      {
-      command.CommandText = @"INSERT INTO incidents (" +getNewColString<Incident>(inc)+ ") VALUES(" + getNewValString<Incident>(inc) + ");";
+      command.CommandText = @"INSERT INTO incidents (" + getNewColString<Incident>(inc) + ") VALUES(" + getNewValString<Incident>(inc) + ");";
       setParameters<Incident>(inc, command);
       //Console.WriteLine(command.CommandText);
       command.ExecuteNonQuery();
@@ -137,7 +138,7 @@ namespace Apollo2.Server.Database
     ID = "0" + ID;
    }
 
-   return DateTime.Now.ToString("yyyy-") + ID;
+   return "F" + DateTime.Now.ToString("yy") + ID;
   }
 
   public async Task<List<string>?> getIncidentTypes()
@@ -158,7 +159,7 @@ namespace Apollo2.Server.Database
       if (!reader.IsDBNull(0))
        ret.Add(reader.GetString(0));
 
-      
+
      }
      return ret;
     }
@@ -204,16 +205,16 @@ namespace Apollo2.Server.Database
   {
    try
    {
-    List<Incident> incs= new List<Incident>();
+    List<Incident> incs = new List<Incident>();
 
     using (var mysqlconnection = new MySqlConnection(Program.connectionString))
     {
      await mysqlconnection.OpenAsync();
 
      using var command = mysqlconnection.CreateCommand();
-     
+
      command.CommandText = @"SELECT incident_id,call_number,call_type,call_details,ts_opened,ts_dispatch,ts_arrival,ts_complete,location,location_num,reporting_pty,
-                             contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number 
+                             contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number ,lat, log, alternate_cad
                              FROM incidents 
                              WHERE (incident_status IN ('Dispositioned', 'Closed')) AND
                              (ts_complete IS NOT NULL AND 
@@ -249,11 +250,12 @@ namespace Apollo2.Server.Database
      using var command = mysqlconnection.CreateCommand();
 
      command.CommandText = @"SELECT incident_id,call_number,call_type,call_details,ts_opened,ts_dispatch,ts_arrival,ts_complete,location,location_num,reporting_pty,
-                             contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number 
+                             contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number, lat, log, alternate_cad
                              FROM incidents 
-                             WHERE (call_number LIKE @CALLNUM) AND incident_status IN ('Dispositioned', 'Closed')";
+                             WHERE (call_number LIKE @CALLNUM OR alternate_cad LIKE @ALTNUM) AND incident_status IN ('Dispositioned', 'Closed')";
 
      command.Parameters.AddWithValue("@CALLNUM", $"%{val}%");
+     command.Parameters.AddWithValue("@ALTNUM", $"%{val}%");
 
      using var reader = await command.ExecuteReaderAsync();
      incs = DataReaderMapToList<Incident>(reader);
@@ -280,7 +282,7 @@ namespace Apollo2.Server.Database
      using var command = mysqlconnection.CreateCommand();
 
      command.CommandText = @"SELECT incident_id,call_number,call_type,call_details,ts_opened,ts_dispatch,ts_arrival,ts_complete,location,location_num,reporting_pty,
-                             contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number 
+                             contact_at,disposition,updated,duplicate_of_incident_id,incident_status,unit_number, lat, log, alternate_cad
                              FROM incidents 
                              WHERE incident_id = @ID";
 
@@ -289,6 +291,7 @@ namespace Apollo2.Server.Database
      using var reader = await command.ExecuteReaderAsync();
      incs = DataReaderMapToList<Incident>(reader);
      if (incs.Count == 0) return null;
+     incs[0].location_num = incs[0].unit_number;
      return incs[0];
     }
    }
@@ -297,6 +300,81 @@ namespace Apollo2.Server.Database
     Console.WriteLine(ex.ToString());
     return null;
    }
+  }
+
+  public async Task createPage(string unit, int inc)
+  {
+   try
+   {
+    List<Incident> incs = new List<Incident>();
+
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+
+     command.CommandText = @"INSERT INTO paging (unit, incident_id, pageout_ts) VALUES (@UNIT, @INC, @NOW)";
+
+     command.Parameters.AddWithValue("@UNIT", unit);
+     command.Parameters.AddWithValue("@INC", inc);
+     command.Parameters.AddWithValue("@NOW", DateTime.UtcNow);
+
+     command.ExecuteNonQuery();
+
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex.ToString());
+   }
+  }
+
+  public async Task<Dictionary<string, Incident>> getActivePages()
+  {
+   Dictionary<string, Incident> ret = new Dictionary<string, Incident>();
+
+   try
+   {
+    List<Incident> incs = new List<Incident>();
+
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using (var command = mysqlconnection.CreateCommand())
+     {
+      command.CommandText = @"SELECT unit, incident_id, pageout_ts FROM paging
+                             WHERE pageout_ts > @NOW";
+
+      command.Parameters.AddWithValue("@NOW", DateTime.UtcNow - TimeSpan.FromSeconds(10));
+
+      using (var reader = await command.ExecuteReaderAsync())
+      {
+       while (reader.Read())
+       {
+
+        if (reader.IsDBNull(0) || reader.IsDBNull(1))
+         continue;
+
+        Incident? inc = await getIncidentByIncId(reader.GetInt32(1));
+        if (inc == null) continue;
+
+        ret[reader.GetString(0)] = inc;
+
+       }
+      }
+     }
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex.ToString());
+    return null;
+   }
+
+
+   return ret;
   }
 
 
@@ -369,7 +447,7 @@ namespace Apollo2.Server.Database
 
    return str.Substring(2);
   }
-  
+
   public static string getNewColString<T>(T obj)
   {
    string str = "";
@@ -386,7 +464,7 @@ namespace Apollo2.Server.Database
 
    return str.Substring(2);
   }
-  
+
   public static string getNewValString<T>(T obj)
   {
    string str = "";

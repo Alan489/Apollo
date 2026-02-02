@@ -6,7 +6,6 @@ using Blazored.LocalStorage;
 using Blazored.SessionStorage;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-
 namespace Apollo2
 {
  public class Program
@@ -17,6 +16,7 @@ namespace Apollo2
    var builder = WebAssemblyHostBuilder.CreateDefault(args);
    builder.RootComponents.Add<App>("#app");
    builder.RootComponents.Add<HeadOutlet>("head::after");
+
 
    builder.Services.AddBlazoredLocalStorageAsSingleton(config =>
    {

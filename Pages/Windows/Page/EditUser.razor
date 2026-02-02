@@ -9,6 +9,7 @@
 @using Apollo2.Shared.Sys.Data.Units
 @using Apollo2.Shared.Sys.User
 @inject UserManagement _um
+@inject Units units
 @inject HttpClient _http
 
 <div class="ROOT">
@@ -57,13 +58,43 @@
    <div class="USRLOCKED">
     <input type="number" @bind="access" />
    </div>
-   
+
    @if (myUser.id != -1)
    {
     <button class="SAVE" @onclick="saveAccess">Update Access</button>
    }
 
   </div>
+
+
+
+  @if (myUser.id != -1)
+  {
+   <div class="LINE0">
+    <div class="LABEL">
+     MDT Unit Assignment
+    </div>
+    <div class="USRLOCKED">
+     <select @bind='assignment'>
+      @if (Units.units != null)
+      {
+       <option value="NULL">No MDT Assignment</option>
+       <option value="MAP">Display map on login</option>
+       <option value="BOARD">Display board on login</option>
+       @foreach (UnitGlance s in Units.units.Where(ug => ug.type == "Unit"))
+       {
+        <option value="@s.unit">Unit: @s.unit</option>
+       }
+
+      }
+
+     </select>
+    </div>
+    <button class="SAVE" @onclick="saveAssignment">Update Assignment</button>
+   </div>
+  }
+
+
 
 
   <div class="LINE1">
@@ -89,9 +120,11 @@
    @if (generatedPassword == "")
    {
     <div class="GENPWCONTAINER">
-     <button class="GENPW" @onclick = "generateNewPassword">Generate New Password</button>
+     <button class="GENPW" @onclick="generateNewPassword">Generate New Password</button>
     </div>
-   }else{
+   }
+   else
+   {
     <span>
      New Password:
     </span>
@@ -121,11 +154,24 @@
 
  private static Random random = new Random();
 
+
  private UserManagementObject myUser
  {
   get
   {
    return (UserManagementObject)para.memory["MYUSER"];
+  }
+ }
+
+ private string assignment
+ {
+  get
+  {
+   return myUser.assignment;
+  }
+  set
+  {
+   myUser.assignment = value;
   }
  }
 
@@ -255,6 +301,13 @@
    _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Sys/User/User/post/access/{myUser.id}/{myUser.access_level}", SystemInformation.session);
  }
 
+ //API/Sys/User/User/post/assignment/{myUser.id}/{myUser.assignment}
+ private void saveAssignment()
+ {
+  if (myUser.id != -1)
+   _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Sys/User/User/post/assignment/{myUser.id}/{myUser.assignment}", SystemInformation.session);
+ }
+
  //API/Sys/User/User/create
  private void saveclose()
  {
@@ -263,11 +316,11 @@
   if (generatedPassword == "")
    return;
 
-   myUser.generateHashword(generatedPassword);
+  myUser.generateHashword(generatedPassword);
 
-   CreateUser cu = new CreateUser();
-   cu.Session = SystemInformation.session;
-   cu.umo = myUser;
+  CreateUser cu = new CreateUser();
+  cu.Session = SystemInformation.session;
+  cu.umo = myUser;
 
   _http.PostAsJsonAsync<CreateUser>(SystemInformation.sysURL + $"/API/Sys/User/User/create", cu);
 

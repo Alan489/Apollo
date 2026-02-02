@@ -15,6 +15,12 @@ namespace Apollo2.Shared.Sys.User
   public int AccessLevel { get; set; }
   public Token token { get; set; }
   public string signature { get; set; }
+  public bool isMDT { get; set; } = false;
+  public string? unitAssignment { get; set; }
+  public double sysLat { get; set; }
+  public double sysLon { get; set; }
+  public int sysZoom { get; set; }
+  public string googleLink { get; set; }
 
   public void sign(string signature)
   {

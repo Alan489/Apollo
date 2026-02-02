@@ -1,0 +1,220 @@
+﻿@using Apollo2.Shared.Sys.Data.MDT
+@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@using System.Timers
+@inject HttpClient _http
+
+<div class="BoardRoot">
+ <div class="BoardBody">
+  @if (myInfo == null)
+  {
+   <div class="Loading">
+    Loading...
+   </div>
+  }
+  else
+  {
+   <div class="MainTop">
+
+    <script src="@($"https://maps.googleapis.com/maps/api/js?key={SystemInformation.session.googleLink}&callback=initMap&v=weekly&libraries=marker,maps,core")"
+            defer></script>
+    <div class="UnitInformation">
+      <div class="UnitHeader">
+        @myInfo.unit.unit
+      </div>
+     <div class="UnitPersonnel">
+      @myInfo.unit.personnel
+     </div>
+      <div class="status">
+      @if (myInfo.unit.status == "In Service")
+      {
+       <div class="StatusInService">
+         In Service
+       </div>
+      }
+      @if (myInfo.unit.status == "Busy")
+      {
+       <div class="StatusBusy">
+         Busy
+       </div>
+      }
+      @if (myInfo.unit.status == "Attached to Incident")
+      {
+       <div class="StatusAttached">
+         Attached to Incident
+       </div>
+      }
+      @if (myInfo.unit.status == "Out Of Service")
+      {
+       <div class="StatusOOS">
+         Out of Service
+       </div>
+      }
+      @if (myInfo.unit.incident != null)
+      {
+       <div class="IncidenContainer">
+        <div class="IncidentLocation">
+         Address: @myInfo.unit.incident.location
+        </div>
+        <div class="IncidentLocation">
+         Location: @myInfo.unit.incident.unit_number
+        </div>
+        <div class="IncidentType">
+         Nature: @myInfo.unit.incident.call_type
+        </div>
+        <div class="IncidentDetails">
+         Details: @myInfo.unit.incident.call_details
+        </div>
+       </div>
+      }
+     </div>
+      
+    </div>
+    <div class="Map">
+     <gmp-map rendering-type="raster"
+              heading="270"
+              center="@lat,@lng"
+              zoom="@(zoom-1)"
+              map-id="48d80325ba0e741c57a7e0a4">
+      @if (hasIncident)
+      {
+       <gmp-advanced-marker position="@lat,@lng">
+        <div class="callLabel">INCIDENT</div>
+       </gmp-advanced-marker>
+      }
+     </gmp-map>
+    </div>
+
+    <div class="incidentNotes">
+     @foreach (IncidentNote note in myInfo.incidentNotes.Where(p => p.message != "UPDATED INCIDENT" && p.message != "OPENED INCIDENT").Reverse())
+     {
+      <div class="NOTE">
+       <div class="NOTEMESSAGE">
+        @note.message
+       </div>
+       <div class="NOTEFOOTER">
+        @if (!string.IsNullOrEmpty(note.unit))
+        {
+         <div class="NOTEUNIT">
+          @note.unit
+         </div>
+        }
+        <div class="NOTETIMESTAMP">
+         @note.ts.ToString("HH:mm MM/dd/yy")
+        </div>
+        <div class="NOTEWRITER">
+         @note.creator
+        </div>
+       </div>
+      </div>
+     }
+     </div>
+
+
+   </div>
+
+  }
+ </div>
+</div>
+
+
+@code {
+ MDTInformation myInfo;
+ double lat = 0;
+ double lng = 0;
+ int zoom = 10;
+ bool hasIncident = false;
+
+ protected override async Task OnInitializedAsync()
+ {
+  //await JSRuntime.InvokeAsync<string>("setMapDefault", , , SystemInformation.session.sysZoom);
+  tick(null, null);
+  SysTimers.fifteenSecondTimer.Elapsed += tick;
+ }
+
+
+ public async void tick(Object? source, ElapsedEventArgs? e)
+ {
+  HttpResponseMessage? resp = null;
+  try
+  {
+   resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Sys/User/User/Unit/MDT/get", SystemInformation.session);
+  } catch(Exception es)
+  {
+
+  }
+
+  if (resp == null)
+   return;
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   return;
+  }
+
+  MDTInformation? newInfo = null;
+
+  try
+  {
+   newInfo = await resp.Content.ReadFromJsonAsync<MDTInformation>();
+  }
+  catch (Exception x)
+  {
+   Console.WriteLine(x);
+  }
+
+  if (newInfo == null)
+   return;
+
+  if (myInfo == null)
+  {
+   myInfo = newInfo;
+   if (myInfo.unit.incident != null && myInfo.unit.incident.lat != 0 && myInfo.unit.incident.log != 0)
+   {
+    lat = myInfo.unit.incident.lat;
+    lng = myInfo.unit.incident.log;
+    zoom = 18;
+    hasIncident = true;
+   }
+   return;
+  }
+
+  bool newIncident = false;
+
+  //This is fugly
+  if (myInfo.unit.incident == null)
+  {
+   if (newInfo.unit.incident != null)
+    newIncident = true;
+  } else
+  {
+   if (newInfo.unit.incident != null && myInfo.unit.incident.incident_id != newInfo.unit.incident.incident_id)
+   {
+    newIncident = true;
+   }
+  }
+
+  myInfo = newInfo;
+
+  if (myInfo.unit.incident != null && myInfo.unit.incident.lat != 0 && myInfo.unit.incident.log != 0)
+  {
+   lat = myInfo.unit.incident.lat;
+   lng = myInfo.unit.incident.log;
+   zoom = 18;
+   hasIncident = true;
+  } else
+  {
+   lat = SystemInformation.session.sysLat;
+   lng = SystemInformation.session.sysLon;
+   zoom = (int)SystemInformation.session.sysZoom;
+   hasIncident = false;
+  }
+
+  StateHasChanged();
+ }
+
+}

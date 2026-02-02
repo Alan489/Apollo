@@ -16,7 +16,7 @@ namespace Apollo2.Server.Database
      await mysqlconnection.OpenAsync();
 
      using var command = mysqlconnection.CreateCommand();
-     command.CommandText = @"SELECT id,username,password,name,access_level,change_password,locked_out,failed_login_count,last_login_time FROM users WHERE username = @user;";
+     command.CommandText = @"SELECT id,username,password,name,access_level,change_password,locked_out,failed_login_count,last_login_time,access_acl FROM users WHERE username = @user;";
 
      command.Parameters.AddWithValue("@user", uname);
 
@@ -42,6 +42,8 @@ namespace Apollo2.Server.Database
        ret.failed_login_count = reader.GetInt32(7);
       if (!reader.IsDBNull(8))
        ret.last_login_time = reader.GetDateTime(8);
+      if (!reader.IsDBNull(9))
+       ret.access_acl = reader.GetString(9);
 
       return ret;
      }
@@ -99,7 +101,7 @@ namespace Apollo2.Server.Database
      using var command = mysqlconnection.CreateCommand();
 
      command.CommandText = 
-      @"SELECT id,username,name,access_level,timeout,change_password,locked_out,failed_login_count FROM users";
+      @"SELECT id,username,name,access_level,timeout,change_password,locked_out,failed_login_count,access_acl FROM users";
 
 
 
@@ -122,9 +124,9 @@ namespace Apollo2.Server.Database
       if (!reader.IsDBNull(5))
        userManagementObject.change_password = reader.GetInt32(5);
       if (!reader.IsDBNull(5))
-       userManagementObject.locked_out = reader.GetInt32(6);
+       userManagementObject.locked_out = reader.GetInt32(5);
       if (!reader.IsDBNull(6))
-       userManagementObject.failed_login_count = reader.GetInt32(7);
+       userManagementObject.failed_login_count = reader.GetInt32(6);
 
       list.Add(userManagementObject);
      }

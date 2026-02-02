@@ -95,9 +95,12 @@
   _navi.LocationChanged += LocationChanged;
   SysTimers.secondTimer.Elapsed += clock;
 
-  if (await _sys.loadSavedData())
+  if (await _sys.loadSavedData() && SystemInformation.session != null)
   {
-   _navi.NavigateTo("/CAD");
+   if (SystemInformation.session.isMDT)
+    _navi.NavigateTo("/MDT");
+   else
+    _navi.NavigateTo("/CAD");
   }
 
 
@@ -332,7 +335,7 @@
    SystemInformation.sysURL = sysTemp;
    await _sys.save();
 
-   _navi.NavigateTo("/CAD");
+   _navi.NavigateTo("/MDT");
    return;
   }
 

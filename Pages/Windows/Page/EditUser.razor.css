@@ -126,3 +126,16 @@ input[type=text] {
   ::-webkit-scrollbar-thumb:hover {
     background: #555;
   }
+
+
+select {
+  width: auto;
+  background-color: #333;
+  border-radius: 7px;
+  color: white;
+}
+
+  select:focus {
+    outline: none;
+    border: 2px solid #55A;
+  }

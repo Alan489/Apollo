@@ -4,6 +4,8 @@
 @using Apollo2.Shared.Sys.Data.Incidents
 @using Apollo2.Shared.Sys.User
 @using Apollo2.Shared.Sys.Data.Units
+@using System.Net
+@using System.Text.Json
 @inject Incidents _incsService
 @inject Units _unitsService
 @inject HttpClient _http
@@ -11,7 +13,7 @@
 <div class="IncRoot">
  <div class="IncHeader">
   <div class="TITLE">
-   @para.Title
+   <span>@para.Title</span> <span><input class="CADInput" @bind-value="myIncident.alternate_cad" /></span>
   </div>
   <div class="CLOSE">
 
@@ -49,7 +51,26 @@
  </div>
  <div class="IncBody">
 
-  @if (false)//(attachingUnit || selectingUnit) && !lck)
+   @if (newAddress != null)
+   {
+   <div class="AddressConfirmationRoot">
+     <div class="AddressConfirmationHeader">
+       Address Found
+     </div>
+     <div class="AddressConfirmationAddress">
+       @newAddress
+     </div>
+     <div class="AddressConfirmationQuestion">
+       Accept changes?
+     </div>
+     <div class="AddressConfirmationButtons">
+       <button class="CLOSEBUTTON" @onclick="cancelAddress">DISCARD</button>
+     <button class="SAVEBUTTON" @onclick="acceptAddress">ACCEPT</button>
+     </div>
+   </div>
+  }
+
+  @if ((attachingUnit || selectingUnit) && !lck)
   {
    <div class="UNITSELECTION">
     <div class="UNITSELECTIONHEADER">
@@ -111,6 +132,34 @@
       <input type="text" @bind-value='myIncident.location' maxlength="80" />
      }
     </div>
+
+
+    <div class="Detail">
+     <div class="DetailLabel">
+      Apartment/Detail location
+     </div>
+     @if (lck)
+     {
+      <input type="text" @bind-value='myIncident.unit_number' disabled />
+     }
+     else
+     {
+      <input type="text" @bind-value='myIncident.unit_number' maxlength="80" />
+     }
+    </div>
+
+
+    <div class="Detail">
+     @if (lck)
+     {
+      <button class="timerButton">Check Address</button>
+     }
+     else
+     {
+      <button class="timerButton" @onclick='checkAddress'>Check Address</button>
+     }
+    </div>
+
     <div class="Detail">
      <div class="DetailLabel">
       Details
@@ -125,6 +174,12 @@
      }
     </div>
 
+    
+
+   </div>
+
+
+   <div class="IncDetailArea2">
     <div class="Detail">
      <div class="DetailLabel">
       Reporting Party
@@ -152,12 +207,6 @@
       <input type="text" @bind-value='myIncident.contact_at' maxlength="80" />
      }
     </div>
-
-   </div>
-
-
-   <div class="IncDetailArea2">
-
     <div class="Detail">
      <div class="DetailLabel">
       Call Type
@@ -297,10 +346,16 @@
 
      <div class="UnitsAttached">
       <div class="UnitsHeader">
-       Attached Units
+       Attached Units 
+       @if (unitPaging.Count != 0)
+       {
+       <span style="float:right; padding-right:10px"><button class="timerButton" @onclick="sendPage">Send Page</button></span>
+        
+       }
       </div>
       <table class="UnitsAttachedTable">
        <tr>
+        <td>Page</td>
         <td>Unit</td>
         <td>Dispatched</td>
         <td>On Scene</td>
@@ -320,6 +375,15 @@
        @foreach (UnitAttachment ua in attachments.Where(u => u.cleared_time == null))
        {
         <tr>
+          @if (!unitPaging.Contains(ua.unit))
+         {
+          <td><button class="timerButton" @onclick='() => addUnitToPage(ua.unit)'>Page</button></td>
+         }
+         else
+         {
+          <td><button class="timerButton" @onclick='() => removeUnitFromPage(ua.unit)' >Remove</button></td>
+         }
+
          <td style="color:@ua.color">@ua.unit</td>
          @if (ua.dispatch_time == null || ua.dispatch_time < DateTime.UtcNow.AddYears(-250))
          {
@@ -440,6 +504,8 @@
  [Parameter]
  public required Window para { get; set; }
 
+
+
  private string typ
  {
   get
@@ -554,6 +620,8 @@
  }
 
  private bool lck = true;
+
+ private List<string> unitPaging = new List<string>();
 
  private Incident myIncident
  {
@@ -830,6 +898,27 @@
   StateHasChanged();
  }
 
+ private void addUnitToPage(string u)
+ {
+  unitPaging.Add(u);
+ }
+
+ private void removeUnitFromPage(string u)
+ {
+  unitPaging.RemoveAll(s => s == u);
+ }
+
+ private async void sendPage()
+ {
+  foreach (string s in unitPaging)
+  {
+   var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/post/paging/{s}/{myIncident.incident_id}", SystemInformation.session);
+  }
+  unitPaging.RemoveAll(s => true);
+  WindowManager.AddModal("SUC", para.Title, "Page sent.");
+  StateHasChanged();
+ }
+
  public bool attachUnit(string u)
  {
   UnitGlance? ug = Units.units.FirstOrDefault(un => un.status == "In Service" && un.unit.ToLower() == u.ToLower());
@@ -839,6 +928,94 @@
 
 
   return true;
+ }
+
+ private string? newAddress = null;
+ private double? lat,log;
+
+ private async Task checkAddress()
+ {
+  string baseURL = $"https://maps.googleapis.com/maps/api/geocode/json?key={SystemInformation.session.googleLink}&address=";
+  var resp = await _http.PostAsync($"{baseURL}{WebUtility.UrlEncode(myIncident.location)}", null);
+  if (!resp.IsSuccessStatusCode)
+  {
+   WindowManager.AddModal("ERR", "Fail", "Error occured checking address");
+   return;
+  }
+  JsonDocument jd = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+  try
+  {
+
+   if (jd.RootElement.GetProperty("results").GetArrayLength() == 0)
+   {
+    WindowManager.AddModal("WRN", "Error", "Address not found.");
+    return;
+   }
+
+   if (jd.RootElement.GetProperty("results").GetArrayLength() > 1)
+   {
+    WindowManager.AddModal("WRN", "Error", "Multiple results found.");
+    return;
+   }
+
+   var firstResult = jd.RootElement.GetProperty("results")[0];
+   // Example: formatted_address
+   newAddress = firstResult.GetProperty("formatted_address").GetString();
+
+   // Example: lat/lng
+   lat = firstResult
+       .GetProperty("geometry")
+       .GetProperty("location")
+       .GetProperty("lat")
+       .GetDouble();
+
+   log = firstResult
+        .GetProperty("geometry")
+        .GetProperty("location")
+        .GetProperty("lng")
+        .GetDouble();
+
+   //Console.WriteLine(newAddress);
+
+   if (string.IsNullOrEmpty(newAddress) || lat == null || log == null || lat == 0 || log == 0)
+   {
+    newAddress = null;
+    lat = 0;
+    log = 0;
+    WindowManager.AddModal("WRN", "Error", "Address not found.");
+    return;
+   }
+
+  } catch (Exception e)
+  {
+   newAddress = null; 
+   lat = 0;
+   log = 0;
+   WindowManager.AddModal("WRN", "Error", "Address not found.");
+   return;
+  }
+
+
+ }
+
+ private async Task cancelAddress()
+ {
+  newAddress = null;
+  lat = 0;
+  log = 0;
+  StateHasChanged();
+ }
+
+ private async Task acceptAddress()
+ {
+  myIncident.location = newAddress;
+  myIncident.lat = lat??0;
+  myIncident.log = log??0;
+  newAddress = null;
+  lat = 0;
+  log = 0;
+  StateHasChanged();
+  await save(false);
  }
 
  

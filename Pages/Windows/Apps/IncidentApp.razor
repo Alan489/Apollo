@@ -23,7 +23,7 @@
    <table class="IncidentsTable">
     <tr class="IncidentsTableHeader">
      <td>Call Number</td>
-     <td>Details</td>
+     <td>Type</td>
      <td>Location</td>
      <td>Updated</td>
      <td>Opened</td>
@@ -35,7 +35,7 @@
      {
       <tr class="IncidentRow" @onclick="() => openIncident(inc)">
        <td class="call_number">@inc.call_number</td>
-       <td class="call_details">@inc.call_details</td>
+       <td class="call_details">@inc.call_type</td>
        <td class="location">@inc.location</td>
        <td class="updated @(((DateTime)(inc.updated ?? DateTime.MinValue)) < DateTime.Now.AddMinutes(-10) ? ((((DateTime)(inc.updated ?? DateTime.MinValue)) < DateTime.Now.AddMinutes(-15)) ? "ATTN" : "WRN" ): "")">@(((DateTime)(inc.updated ?? DateTime.MinValue)).ToString("HH:mm"))</td>
        <td class="ts_opened">@(((DateTime)(inc.ts_opened ?? DateTime.MinValue)).ToString("HH:mm"))</td>
@@ -182,12 +182,12 @@
   Incident? a = Incidents.incidents.FirstOrDefault(k => k.incident_id == inc);
 
   if (a != null)
-   WindowManager.openPage("INC", "INC#" + a.call_number, "" + a.incident_id);
+   WindowManager.openPage("INC", "" + a.call_number, "" + a.incident_id);
  }
 
  private void openIncident(Incident inc)
  {
-  WindowManager.openPage("INC", "INC#" + inc.call_number, "" + inc.incident_id);
+  WindowManager.openPage("INC", "" + inc.call_number, "" + inc.incident_id);
  }
 
  private void updateStatus(string unit)
