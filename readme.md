@@ -8,12 +8,3 @@ Check out the [video demo](https://youtu.be/fmFMAo7v12Y)
 
 (https://youtu.be/fmFMAo7v12Y)
 
-Check out the [live demo](https://alan489.com/)
-
-(https://alan489.com)
-
-Use System Address: alan489.com:134
-
-Username: demo
-
-Password: 1234
