@@ -59,12 +59,64 @@ namespace Apollo2.Server.Controllers.Incidents
     return Unauthorized();
    }
 
+   Incident? inc = await _idbc.getIncidentByIncId(sir.incident.incident_id);
+
+   if (inc == null)
+    return NotFound();
+
+   if (inc.location_num != sir.incident.location_num)
+   {
+    //I'm a teapot.
+    return StatusCode(418);
+   }
+
+   sir.incident.updated = DateTime.Now;
+   sir.incident.location_num = Guid.NewGuid().ToString();
+
    await _idbc.saveIncident(sir.incident);
 
    if (sir.incident.ts_complete != null && sir.incident.ts_complete > DateTime.Now.AddYears(-250) && !string.IsNullOrEmpty(sir.incident.disposition) && sir.incident.disposition != "Not Selected")
     await LogDBContext.incidentLog(sir.incident.incident_id, "CLOSED INCIDENT", sir.session.token.username);
    else
     await LogDBContext.incidentLog(sir.incident.incident_id, "UPDATED INCIDENT", sir.session.token.username);
+
+   
+
+   return new ObjectResult(sir.incident.location_num);
+  }
+
+  [HttpPost("post/timestamp/{ts_type}/{inc_id}")]
+  public async Task<IActionResult>postTimestamp(string ts_type,int inc_id, UserSession us)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(us);
+
+   if (ar.success == false)
+   {
+    return Unauthorized();
+   }
+
+   Incident? inc = await _idbc.getIncidentByIncId(inc_id);
+
+   if (inc == null)
+    return NotFound();
+
+   switch (ts_type)
+   {
+    case "os":
+     if (inc.ts_arrival == null)
+      await _idbc.markOnScene(inc_id);
+     else
+      return BadRequest();
+     break;
+    case "dp":
+     if (inc.ts_dispatch == null)
+      await _idbc.markDispatch(inc_id);
+     else
+      return BadRequest();
+     break;
+    default:
+     return BadRequest();
+   }
 
    return Ok();
   }

@@ -1,0 +1,424 @@
+﻿@using Apollo2.Shared.Sys.Data.Map
+@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@using System.Runtime.InteropServices.JavaScript;
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+@inject IJSRuntime JSRuntime
+
+<div class="ROOT">
+
+ <div class="HEADER">
+  <div class="TITLE">
+   Map Editor
+  </div>
+  <div class="CONTROLS">
+
+    @switch (status)
+   {
+    case "DELPOI":
+    case "CREATEPOI2":
+     break;
+     default:
+     {
+       @if (status.StartsWith("ERROR"))
+       {
+        <div class="error">
+          FAILED TO LOAD
+        </div>
+       } else
+       {
+        <button @onclick="createPOI">@(status == "CREATEPOI" ? "Cancel POI" : "Create POI")</button>
+       }
+      break;
+     }
+   }
+   <button class="DISCARD" @onclick="discard">CLOSE</button>
+  </div>
+ </div>
+
+ <div class="BODY">
+   @switch(status)
+   {
+     case "CREATEPOI2":
+     {
+       <div class="SUBPANEL">
+         <div class="SUBPANELHEADER">
+           Creating new Point of Interest
+         </div>
+         <div class="SUBPANELBODY">
+           Category <br />
+           <select @bind="poiSelectedCategory">
+             @foreach(POICategory category in categories)
+              {
+               <option value="@category.name">@category.name</option>
+              }
+           </select>
+           <br />
+
+           Name<br />
+           <input type="text" @bind-value="poiName" />
+           <br />
+           Display Name<br />
+           <input type="text" @bind-value="poiShortName" />
+           <br />
+           <button class="SAVE" @onclick="poiSave">Save</button>
+           <button class="DISCARD" @onclick="poiCancel">Cancel</button>
+
+         </div>
+       </div>
+     break;
+    }
+
+    case "DELPOI":
+    {
+      <div class="SUBPANEL">
+         <div class="SUBPANELHEADER">
+           Deleting Point of Interest @deletePOIItem.poi_name
+         </div>
+         <div class="SUBPANELBODY">
+           Are you sure you want to delete this Point of Interest?<br />
+           <button @onclick="cancelDeletePOI">Cancel</button>
+           <button class="DISCARD" @onclick="confirmDeletePOI">DELETE POINT OF INTEREST</button>
+
+         </div>
+       </div>
+     break;
+    }
+     
+   default:
+    {
+      <gmp-map 
+        rendering-type="raster" 
+        heading="270" 
+        center="@SystemInformation.session.sysLat,@SystemInformation.session.sysLon" 
+        zoom="@SystemInformation.session.sysZoom"
+        map-id="48d80325ba0e741c57a7e0a4">
+        @foreach(poi point in points)
+         {
+          <gmp-advanced-marker position="@point.poi_lat,@point.poi_lng" >
+            <div class="poiMarker" style="background-color:rgba(@(getbgcolor(point)),.75);color:rgb(@(getfgcolor(point)))" @onclick="() => deletePOI(point.poi_id)" >@point.poi_shortname</div>
+          </gmp-advanced-marker>
+         }
+        </gmp-map>
+        @if (SystemInformation.mapLoaded == false)
+       {
+       <script src="@($"https://maps.googleapis.com/maps/api/js?key={SystemInformation.session.googleLink}&callback=initMapEdit&v=weekly&libraries=marker,maps,core")"
+              defer></script>
+  
+       } else
+       {
+        <script>
+          var gmp = document.querySelector("gmp-map");
+          var map = gmp.innerMap;
+
+
+          map.setOptions({
+            disableDefaultUI: true,
+            gestureHandling: 'all',
+            keyboardShortcuts: false
+          });
+
+          var mapElementV = document.querySelector("gmp-map");
+          var innerMapV = mapElementV.innerMap;
+
+          google.maps.event.addListener(innerMapV, "click", function(event){
+              const clickedLocation = event.latLng;
+              const latitude = clickedLocation.lat();
+              const longitude = clickedLocation.lng();
+              DotNet.invokeMethodAsync('Apollo2', 'consumeClick', latitude, longitude);
+            });
+        </script>
+       }
+
+        <script>
+          window.initMapEdit = function()
+          {
+      
+            const mapElement1 = document.querySelector("gmp-map");
+            const innerMap1 = mapElement1.innerMap;
+            DotNet.invokeMethodAsync('Apollo2', 'mapLoaded');
+
+            function applyEditOptions() {
+              innerMap1.setOptions({
+                disableDefaultUI: true,
+                gestureHandling: 'all',
+                keyboardShortcuts: false
+              });
+            }
+
+            google.maps.event.addListenerOnce(innerMap1, "idle", applyEditOptions);
+            google.maps.event.addListener(innerMap1, "click", function(event){
+              const clickedLocation = event.latLng;
+              const latitude = clickedLocation.lat();
+              const longitude = clickedLocation.lng();
+              DotNet.invokeMethodAsync('Apollo2', 'consumeClick', latitude, longitude);
+            });
+          }
+      
+        </script>
+     break;
+    }
+  }
+   
+  </div>
+
+  
+
+</div>
+
+@code {
+
+ [Parameter]
+ public required Window para { get; set; }
+
+ private string status = "IDLE";
+
+ private static MapEdit reference;
+
+ private List<poi> points = new List<poi>();
+ private List<POICategory> categories = new List<POICategory>();
+
+ private void discard()
+ {
+  WindowManager.closePage(para);
+ }
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleUpdate;
+  reference = this;
+  await getPOIs();
+ }
+
+ private void handleUpdate(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.window == para && (we.type != windowEvent.WindowEventType.opened || we.type != windowEvent.WindowEventType.maximized))
+  {
+   WindowManager.WindowChanged -= handleUpdate;
+  }
+ }
+
+ private void createPOI()
+ {
+  if (status.StartsWith("ERROR"))
+   return;
+  if (status == "CREATEPOI")
+  {
+   status = "IDLE";
+   StateHasChanged();
+   return;
+  }
+  status = "CREATEPOI";
+  StateHasChanged();
+  return;
+ }
+
+ private string poiSelectedCategory = "";
+ private string poiName = "";
+ private string poiShortName = "";
+ private double poiLat = 0;
+ private double poiLng = 0;
+
+ private async void poiSave()
+ {
+  if (string.IsNullOrEmpty(poiName) || string.IsNullOrEmpty(poiShortName) || string.IsNullOrEmpty(poiSelectedCategory))
+  {
+   WindowManager.AddModal("WRN", "Error", "All fields are required to create a new POI");
+   return;
+  }
+  await createPOI(poiLat, poiLng, poiName, poiShortName, poiSelectedCategory);
+ }
+
+ private void poiCancel()
+ {
+  if (status == "CREATEPOI2")
+  {
+   poiSelectedCategory = "";
+   poiName = "";
+   poiShortName = "";
+   status = "IDLE";
+   StateHasChanged();
+  }
+ }
+
+ public async Task createPOI(double lat, double lng, string name, string shortname, string category)
+ {
+  try
+  {
+   poi POI = new poi();
+   POI.poi_category = category;
+   POI.poi_name = name;
+   POI.poi_shortname = shortname;
+   POI.poi_lat = lat;
+   POI.poi_lng = lng;
+
+   CreatePOIRequest cpr = new CreatePOIRequest();
+   cpr.session = SystemInformation.session;
+   cpr.POI = POI;
+   var response = await _http.PostAsJsonAsync<CreatePOIRequest>(SystemInformation.sysURL + $"/API/Map/Map/create/poi", cpr);
+   if (!response.IsSuccessStatusCode)
+   {
+    WindowManager.AddModal("ERR", "Error", "Failed to create the new POI. Please try again.");
+    return;
+   }
+   WindowManager.AddModal("SUC", "POI Created", $"Successfully created POI {name}");
+   status = "IDLE";
+   poiSelectedCategory = "";
+   poiName = "";
+   poiShortName = "";
+   points.Add(POI);
+   StateHasChanged();
+  }
+  catch(Exception e)
+  {
+   WindowManager.AddModal("ERR", "Error", "Failed to create the new POI. Please try again.");
+   Console.WriteLine(e);
+  }
+ }
+
+ private poi? deletePOIItem = null;
+
+ public void cancelDeletePOI()
+ {
+  status = "IDLE";
+  deletePOIItem = null;
+  StateHasChanged();
+ }
+
+ public async void confirmDeletePOI()
+ {
+  try
+  {
+   if (deletePOIItem == null) return;
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/delete/poi/{deletePOIItem.poi_id}", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    WindowManager.AddModal("ERR", "Error", "Failed to delete the POI. Please try again.");
+    return;
+   }
+   WindowManager.AddModal("SUC", "POI Deleted", $"Successfully deleted POI {deletePOIItem.poi_name}");
+  }
+  catch(Exception e)
+  {
+   Console.WriteLine(e);
+  }
+
+  status = "IDLE";
+  points.Remove(deletePOIItem ?? new poi());
+  StateHasChanged();
+ }
+
+ public void deletePOI(int id)
+ {
+  status = "DELPOI";
+  deletePOIItem = points.FirstOrDefault(p => p.poi_id == id);
+  StateHasChanged();
+ }
+
+
+ public void receiveClick(double lat, double lng)
+ {
+
+  Console.WriteLine($"{lat} {lng}");
+
+  switch(status)
+  {
+   default:
+    return;
+   case "CREATEPOI":
+    status = "CREATEPOI2";
+    poiLat = lat;
+    poiLng = lng;
+    StateHasChanged();
+    return;
+  }
+
+ }
+
+ private string getbgcolor(poi point)
+ {
+  POICategory? cat = categories.FirstOrDefault(c => c.name == point.poi_category);
+  if (cat == null)
+   return "255,255,255";
+  return cat.bgcolor;
+ }
+ private string getfgcolor(poi point)
+ {
+  POICategory? cat = categories.FirstOrDefault(c => c.name == point.poi_category);
+  if (cat == null)
+   return "0,0,0";
+  return cat.color;
+ }
+
+ private async Task getPOIs()
+ {
+  try
+  {
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/get/poi", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    status = "ERROR GET";
+    return;
+   }
+   List<poi>? retPOI = await response.Content.ReadFromJsonAsync<List<poi>>();
+   if (retPOI == null)
+   {
+    Console.WriteLine("retPOI null.");
+    status = "ERROR READ";
+    return;
+   }
+   points = retPOI;
+
+   response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/get/cat", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    status = "ERROR GET";
+    return;
+   }
+   List<POICategory>? retCAT = await response.Content.ReadFromJsonAsync<List<POICategory>>();
+   if (retCAT == null)
+   {
+    Console.WriteLine("retCAT null.");
+    status = "ERROR READ";
+    return;
+   }
+   categories = retCAT;
+
+   StateHasChanged();
+  }
+  catch(Exception e)
+  {
+   Console.WriteLine(e);
+  }
+ }
+
+
+
+ [JSInvokable]
+ public async static Task<bool> consumeClick(double lat, double lng)
+ {
+  Console.WriteLine($"{lat} {lng}");
+  reference.receiveClick(lat, lng);
+  return true;
+ }
+
+ [JSInvokable]
+ public async static Task<bool> mapLoaded()
+ {
+  SystemInformation.mapLoaded = true;
+  return true;
+ }
+
+
+
+}

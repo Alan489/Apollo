@@ -1,0 +1,79 @@
+﻿@using Apollo2.Sys.Management
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Pages.Components
+@using Apollo2.Sys
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.Data.Units
+
+<div class="ROOT">
+ <div class="HEADER">
+  SYSTEM MANAGEMENT
+ </div>
+ <div class="BODY">
+  <div class="EDITBUTTONS">
+    @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 5)
+   {
+    <button @onclick="openMapEditor">
+      Edit Points of Interest
+    </button>
+   }
+
+   @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 8)
+   {
+     <br />
+    <button @onclick="openCategoryEditor">
+     Edit Point of Interest Categories
+    </button>
+   }
+   else
+   {
+    <div class="Unauthorized">You are not authorized to edit POI Categories.</div>
+   }
+
+  </div>
+ </div>
+</div>
+
+@code {
+ [Parameter]
+ public required Window para { get; set; }
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleWindowChange;
+  StateHasChanged();
+  para.activeComponent = this;
+ }
+
+ private async void handleWindowChange(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.type == windowEvent.WindowEventType.closed || we.type == windowEvent.WindowEventType.minimized)
+  {
+   WindowManager.WindowChanged -= handleWindowChange;
+   return;
+  }
+ }
+
+ private async void openMapEditor()
+ {
+  Window mapEditorWindow = new Window();
+  mapEditorWindow.Title = "Map Editor";
+  mapEditorWindow.WINDOWTYPE = "MAPEDIT";
+  mapEditorWindow.property = "";
+  WindowManager.openPage(mapEditorWindow);
+ }
+
+ private async void openCategoryEditor()
+ {
+  Window mapEditorWindow = new Window();
+  mapEditorWindow.Title = "Category Editor";
+  mapEditorWindow.WINDOWTYPE = "CATEDIT";
+  mapEditorWindow.property = "";
+  WindowManager.openPage(mapEditorWindow);
+ }
+
+}

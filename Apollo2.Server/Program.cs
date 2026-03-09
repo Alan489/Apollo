@@ -106,6 +106,7 @@ namespace Apollo2.Server
    builder.Services.AddScoped<IncidentsDbContext, IncidentsDbContext>();
    builder.Services.AddScoped<UnitDBContext, UnitDBContext>();
    builder.Services.AddScoped<UnitUserDBContext, UnitUserDBContext>();
+   builder.Services.AddScoped<POIDBContext, POIDBContext>();
    builder.Services.AddScoped<Authentication, Authentication>();
    builder.Services.AddControllers();
 

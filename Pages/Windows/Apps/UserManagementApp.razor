@@ -55,9 +55,17 @@
         </td>
        </tr>
        <tr>
-        <td colspan="5" class="NEWUSER" @onclick="() => editUser(-1)">
-         New User
-        </td>
+         @if (SystemInformation.session.AccessLevel < 8)
+        {
+         <td colspan="5" class="NEWUSER">
+          You are not authorized to create new users.
+         </td>
+        } else
+        {
+         <td colspan="5" class="NEWUSER" @onclick="() => editUser(-1)">
+          New User
+         </td>
+        }
        </tr>
        @foreach (UserManagementObject umo in _um.Users)
        {

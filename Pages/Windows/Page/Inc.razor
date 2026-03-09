@@ -13,7 +13,14 @@
 <div class="IncRoot">
  <div class="IncHeader">
   <div class="TITLE">
-   <span>@para.Title</span> <span><input class="CADInput" @bind-value="myIncident.alternate_cad" /></span>
+   @if (!lck)
+   {
+    <span>@para.Title</span> <span><input class="CADInput" @bind-value="myIncident.alternate_cad" /></span>
+   }
+   else
+   {
+    <span>@para.Title</span> <span><input class="CADInput" @bind-value="myIncident.alternate_cad" disabled /></span>
+   }
   </div>
   <div class="CLOSE">
 
@@ -798,9 +805,9 @@
   }
  }
 
- public async Task save(bool ovr = false)
+ public async Task<bool> save(bool ovr = false)
  {
-  if (lck && !ovr) return;
+  if (lck && !ovr) return false;
   StateHasChanged();
   if (!ovr)
    lck = true;
@@ -809,37 +816,75 @@
   {
    myIncident.ts_complete = DateTime.Now;
    myIncident.incident_status = "Dispositioned";
-   myIncident.updated = DateTime.Now;
+   //myIncident.updated = DateTime.Now; //Now handled by server.
 
    SaveIncidentRequest sira = new SaveIncidentRequest();
    sira.session = SystemInformation.session;
-   sira.incident = (Incident)para.memory["MYINCIDENT"];
+   sira.incident = myIncident;
 
    var respa = await _http.PostAsJsonAsync<SaveIncidentRequest>(SystemInformation.sysURL + "/API/Incidents/Incidents/post/save", sira);
+
+   if (!respa.IsSuccessStatusCode)
+   {
+    if ((int) respa.StatusCode == 418)
+    {
+     WindowManager.AddModal("ERR", para.Title, "Failed to save. Incident has been updated elsewhere. Discard and reopen to continue edits.");
+     return false;
+    }
+    WindowManager.AddModal("ERR", para.Title, "Failed to save. An unknown error has occured. Discard and reopen to continue edits.");
+    return false;
+   }
+
+   string? newDTa = await respa.Content.ReadAsStringAsync();
+
+   if (newDTa != null)
+    myIncident.location_num = newDTa;
+   else
+    WindowManager.AddModal("WRN", para.Title, "Incident updated. Failed to update lock token.");
+
 
    para.memory["LOCKED"] = "yes";
    WindowManager.AddModal("SUC", para.Title, "Closed incident.");
 
-   return;
+   return true;
   }
 
-  myIncident.updated = DateTime.Now;
+  //myIncident.updated = DateTime.Now; //Now handled by server.
 
   SaveIncidentRequest sir = new SaveIncidentRequest();
   sir.session = SystemInformation.session;
-  sir.incident = (Incident)para.memory["MYINCIDENT"];
+  sir.incident = myIncident;
 
   var resp = await _http.PostAsJsonAsync<SaveIncidentRequest>(SystemInformation.sysURL + "/API/Incidents/Incidents/post/save", sir);
+
+
+  if (!resp.IsSuccessStatusCode)
+  {
+   if ((int)resp.StatusCode == 418)
+   {
+    WindowManager.AddModal("ERR", para.Title, "Failed to save. Incident has been updated elsewhere. Discard and reopen to continue edits.");
+    return false;
+   }
+   WindowManager.AddModal("ERR", para.Title, "Failed to save. An unknown error has occured. Discard and reopen to continue edits.");
+   return false;
+  }
+
+
   WindowManager.AddModal("SUC", para.Title, "Saved Incident");
 
+  string? newDT = await resp.Content.ReadAsStringAsync();
 
+  if (newDT != null)
+   myIncident.location_num = newDT;
+  else
+   WindowManager.AddModal("WRN", para.Title, "Incident updated. Failed to update lock token.");
 
   if (!ovr)
    lck = false;
 
   StateHasChanged();
 
-  return;
+  return true;
  }
 
 
@@ -848,10 +893,12 @@
   if (lck) return;
   lck = true;
 
-  await save(true);
-
-  WindowManager.openOrMaximizeApplication("IncidentsBoard");
-  WindowManager.closePage(para);
+  if (await save(true))
+  {
+   WindowManager.openOrMaximizeApplication("IncidentsBoard");
+   WindowManager.closePage(para);
+   return;
+  }
 
  }
 
@@ -868,8 +915,11 @@
     ua.arrival_time = DateTime.Now;
     if (myIncident.ts_arrival == null || myIncident.ts_arrival < DateTime.Now.AddYears(-250))
     {
-     myIncident.ts_arrival = DateTime.Now;
-     await save(true);
+     var updateOSTime = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/post/timestamp/os/{((Incident)para.memory["MYINCIDENT"]).incident_id}", SystemInformation.session);
+     if (!updateOSTime.IsSuccessStatusCode)
+     {
+      WindowManager.AddModal("WRN", para.Title, "Failed to update on scene time. It may have already been updated.");
+     }
     }
 
 
@@ -1018,7 +1068,7 @@
   await save(false);
  }
 
- 
+
 
  public bool onScene(string u)
  {
@@ -1088,13 +1138,20 @@
    var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Units/Units/new/attachment/{myIncident.incident_id}/{u}", SystemInformation.session);
    if (myIncident.ts_dispatch == null || myIncident.ts_dispatch < DateTime.Now.AddYears(-250))
    {
-    myIncident.ts_dispatch = DateTime.Now;
-    await save(true);
+    //myIncident.ts_dispatch = DateTime.Now;
+    //await save(true);
+    var updateOSTime = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/post/timestamp/dp/{myIncident.incident_id}", SystemInformation.session);
+    if (!updateOSTime.IsSuccessStatusCode)
+    {
+     WindowManager.AddModal("WRN", para.Title, "Failed to update dispatch time. It may have already been updated.");
+    }
+
    }
    WindowManager.AddModal("SUC", para.Title, "Attached " + u);
    await updateAttchments();
    await _unitsService.reqUpdate();
    lck = false;
+   myIncident.ts_dispatch = DateTime.Now;
    StateHasChanged();
    return;
   }

@@ -19,7 +19,7 @@ namespace Apollo2.Shared.Sys.Data.Incidents
   public DateTime? ts_arrival { get; set; }
   public DateTime? ts_complete { get; set; }
   public string? location { get; set; }
-  public string? location_num { get; set; }
+  public string? location_num { get; set; } = Guid.NewGuid().ToString();
   public string? reporting_pty { get; set; }
   public string? contact_at { get; set; }
   public string? disposition { get; set; }

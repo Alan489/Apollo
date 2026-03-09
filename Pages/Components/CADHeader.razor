@@ -39,17 +39,17 @@
  <div class="HeaderCrumbs" id="HeaderContainer">
   <div class="CrumbContainer" id="CrumbContainer" dropzone="WINDOWS" ondragstart="@AllowDragOver" @ondrop="args => dropped(args)" ondragover="event.preventDefault();">
    <div class='@(
-        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "IncidentsBoard")?
-        "crumbactive" : "crumb"
-        )' @onclick='() => openApp("IncidentsBoard")'>
+            (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "IncidentsBoard") ?
+            "crumbactive" : "crumb"
+                   )' @onclick='() => openApp("IncidentsBoard")'>
     <button>
      Call Board
     </button>
    </div>
    <div class='@(
-        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "UnitsBoard")?
-        "crumbactive" : "crumb"
-        )' @onclick='() => openApp("UnitsBoard")'>
+            (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "UnitsBoard") ?
+            "crumbactive" : "crumb"
+                   )' @onclick='() => openApp("UnitsBoard")'>
     <button>
      Unit Management
     </button>
@@ -62,12 +62,23 @@
      User Profile
     </button>
    </div>-->
-   @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 8)
+
+   @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 5)
    {
+
     <div class='@(
-        (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "USRMANAGEMENT")?
-        "crumbactive" : "crumb"
-        )' @onclick='() => openApp("USRMANAGEMENT")'>
+              (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "SYSMANAGEMENT") ?
+              "crumbactive" : "crumb"
+                                               )' @onclick='() => openApp("SYSMANAGEMENT")'>
+     <button>
+      System Management
+     </button>
+    </div>
+
+    <div class='@(
+              (WindowManager.activeWindow != null && WindowManager.activeWindow.WINDOWTYPE == "USRMANAGEMENT") ?
+              "crumbactive" : "crumb"
+                                  )' @onclick='() => openApp("USRMANAGEMENT")'>
      <button>
       User Management
      </button>
@@ -75,16 +86,15 @@
 
    }
 
-   @foreach (Window w in WindowManager.Windows.Where(wa => wa.WINDOWTYPE != "IncidentsBoard" && wa.WINDOWTYPE != "UnitsBoard" && wa.WINDOWTYPE != "Profile" && wa.WINDOWTYPE != "USRMANAGEMENT").ToList())
+   @foreach (Window w in WindowManager.Windows.Where(wa => wa.WINDOWTYPE != "IncidentsBoard" && wa.WINDOWTYPE != "UnitsBoard" && wa.WINDOWTYPE != "Profile" && wa.WINDOWTYPE != "USRMANAGEMENT" && wa.WINDOWTYPE != "SYSMANAGEMENT").ToList())
    {
     @if (w.WINDOWTYPE == "INC" || w.WINDOWTYPE == "UnitEdit")
     {
      <div class='@(
-        (WindowManager.activeWindow != null && WindowManager.activeWindow == w)?
-        "crumbactive drag" : "crumb drag"
-        )' @onclick='() => maximize(w)'
-     draggable="true" dropzone="WINDOWS" @ondragstart='() => dragme(w)' @ondragend='() => dragend(w)'
-     >
+                (WindowManager.activeWindow != null && WindowManager.activeWindow == w) ?
+                "crumbactive drag" : "crumb drag"
+                       )' @onclick='() => maximize(w)'
+          draggable="true" dropzone="WINDOWS" @ondragstart='() => dragme(w)' @ondragend='() => dragend(w)'>
       <button>
        @w.Title
       </button>
@@ -93,9 +103,9 @@
     else
     {
      <div class='@(
-        (WindowManager.activeWindow != null && WindowManager.activeWindow == w)?
-        "crumbactive" : "crumb"
-        )' @onclick='() => maximize(w)'>
+                (WindowManager.activeWindow != null && WindowManager.activeWindow == w) ?
+                "crumbactive" : "crumb"
+                       )' @onclick='() => maximize(w)'>
       <button>
        @w.Title
       </button>
@@ -173,7 +183,7 @@
   if (s == null)
   {
    clearDragging();
-    return;
+   return;
   }
   string[] b = s.Split("//");
   if (b.Length != 2)
@@ -209,7 +219,7 @@
 
   
 
-  switch(window.WINDOWTYPE)
+  switch (window.WINDOWTYPE)
   {
    case "INC":
     dict = IncidentMemoryDeserializer.deserialize(s);
@@ -223,9 +233,9 @@
 
 
   window.memory = dict ?? new Dictionary<string, object>();
-   WindowManager.openPage(window);
-   await _store.SetItemAsStringAsync("CONSUMED",window.ID + "//" + SystemInformation.windowid);
-   clearDragging();
+  WindowManager.openPage(window);
+  await _store.SetItemAsStringAsync("CONSUMED", window.ID + "//" + SystemInformation.windowid);
+  clearDragging();
  }
 
  void AllowDragOver()

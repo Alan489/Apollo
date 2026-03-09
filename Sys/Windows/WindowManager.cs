@@ -30,6 +30,9 @@
 
    activeWindow = w;
 
+   Windows.Remove(w);
+   Windows.Insert(0, w);
+
    windowEvent we = new windowEvent();
    we.window = w;
 
@@ -154,7 +157,9 @@
     return;
 
    activeWindow = window;
-
+   Windows.Remove(window);
+   Windows.Insert(0, window);
+   Console.WriteLine("Brought the window to the front? I think?");
 
    windowEvent we = new windowEvent();
    we.type = windowEvent.WindowEventType.maximized;

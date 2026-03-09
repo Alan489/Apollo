@@ -1,0 +1,60 @@
+﻿.ROOT {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.HEADER {
+  display: flex;
+  color: #999;
+  border-bottom: 2px solid #666;
+  margin-bottom: 6px;
+  font-size: 2em;
+  text-shadow: 1px 1px 2px black;
+}
+
+.BODY {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0px;
+  height: 100%;
+}
+
+button {
+  line-height: 1em;
+  border: 1px solid #888;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #888;
+  font-family: "Noto Sans Mono", monospace;
+  margin: 5px;
+}
+
+button:hover {
+  background-color: #555;
+  color: #999;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #3a3a3a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+.Unauthorized{
+  color: #A55;
+  margin: 5px;
+}

@@ -1,4 +1,5 @@
-﻿@using Apollo2.Sys
+﻿@using Apollo2.Shared.Sys.Data.Map
+@using Apollo2.Sys
 @using Apollo2.Sys.Windows
 @using Apollo2.Sys.Data
 @using Apollo2.Shared.Sys.Data.Incidents
@@ -26,6 +27,12 @@
       <div class="callLabel">INCIDENT</div>
     </gmp-advanced-marker>
    }
+   @foreach(poi point in points)
+   {
+     <gmp-advanced-marker position="@point.poi_lat,@point.poi_lng" >
+      <div class="poiMarker" style="background-color:rgba(@(getbgcolor(point)),.75);color:rgb(@(getfgcolor(point)))">@point.poi_shortname</div>
+     </gmp-advanced-marker>
+   }
   </gmp-map>
  </div>
 </div>
@@ -37,6 +44,8 @@
 @code {
 
  private List<Incident> incidents = new List<Incident>();
+ private List<poi> points = new List<poi>();
+ private List<POICategory> categories = new List<POICategory>();
 
 
  protected override async Task OnInitializedAsync()
@@ -48,29 +57,86 @@
 
  public async void tick(Object? source, ElapsedEventArgs? e)
  {
-  var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/get/active", SystemInformation.session);
 
-  if (!resp.IsSuccessStatusCode)
-  {
-   return;
-  }
-
-  GetIncidentResponse? gir = null;
 
   try
   {
+   var resp = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/get/active", SystemInformation.session);
+
+   if (!resp.IsSuccessStatusCode)
+   {
+    return;
+   }
+
+   GetIncidentResponse? gir = null;
    gir = await resp.Content.ReadFromJsonAsync<GetIncidentResponse>();
+   if (gir == null)
+    return;
+
+   incidents = gir.Incidents ?? new List<Incident>();
+
   }
   catch(Exception x)
   {
    Console.WriteLine(x);
   }
-
-  if (gir == null)
-   return;
-
-  incidents = gir.Incidents ?? new List<Incident>();
+  await getPOIs();
 
   StateHasChanged();
  }
+
+ private async Task getPOIs()
+ {
+  try
+  {
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/get/poi", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    return;
+   }
+   List<poi>? retPOI = await response.Content.ReadFromJsonAsync<List<poi>>();
+   if (retPOI == null)
+   {
+    Console.WriteLine("retPOI null.");
+    return;
+   }
+   points = retPOI;
+
+   response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/get/cat", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    return;
+   }
+   List<POICategory>? retCAT = await response.Content.ReadFromJsonAsync<List<POICategory>>();
+   if (retCAT == null)
+   {
+    Console.WriteLine("retCAT null.");
+    return;
+   }
+   categories = retCAT;
+
+  }
+  catch(Exception e)
+  {
+   Console.WriteLine(e);
+  }
+ }
+
+  private string getbgcolor(poi point)
+ {
+  POICategory? cat = categories.FirstOrDefault(c => c.name == point.poi_category);
+  if (cat == null)
+   return "255,255,255";
+  return cat.bgcolor;
+ }
+ private string getfgcolor(poi point)
+ {
+  POICategory? cat = categories.FirstOrDefault(c => c.name == point.poi_category);
+  if (cat == null)
+   return "0,0,0";
+  return cat.color;
+ }
+
 }

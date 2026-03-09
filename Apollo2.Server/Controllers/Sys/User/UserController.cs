@@ -109,11 +109,11 @@ namespace Apollo2.Server.Controllers.Sys.User
   }
 
   // API/Sys/User/User/get/umos
-  // ACCESS LEVEL 8
+  // ACCESS LEVEL 5
   [HttpPost("get/umos")]
   public async Task<IActionResult> getUmos(UserSession us)
   {
-   AuthenticationResponse authResponse = await _auth.verifySession(us, 8);
+   AuthenticationResponse authResponse = await _auth.verifySession(us, 5);
    if (!authResponse.success)
     return Unauthorized();
 

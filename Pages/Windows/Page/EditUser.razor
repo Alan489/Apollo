@@ -23,48 +23,54 @@
  </div>
 
  <div class="BODY">
+   @if (SystemInformation.session.AccessLevel >= 8)
+   {
+   @if (myUser.id == -1)
+   {
+    <div class="LINE0">
+     <div class="LABEL">
+      Login
+     </div>
+     <div class="USRLOCKED">
+      <input type="text" @bind="myUser.username" />
+     </div>
 
-  @if (myUser.id == -1)
-  {
+    </div>
+   }
+
    <div class="LINE0">
     <div class="LABEL">
-     Login
+     Name
     </div>
     <div class="USRLOCKED">
-     <input type="text" @bind="myUser.username" />
+     <input type="text" @bind="name" />
+    </div>
+    @if (myUser.id != -1)
+    {
+     <button class="SAVE" @onclick="saveName">Update Name</button>
+    }
+
+   </div>
+
+   <div class="LINE0">
+    <div class="LABEL">
+     Access Level
+    </div>
+    <div class="USRLOCKED">
+     <input type="number" @bind="access" />
     </div>
 
+    @if (myUser.id != -1)
+    {
+     <button class="SAVE" @onclick="saveAccess">Update Access</button>
+    }
+
    </div>
+  } else
+  {
+   <div>You are only authorized to edit MDT assignments.</div>
   }
 
-  <div class="LINE0">
-   <div class="LABEL">
-    Name
-   </div>
-   <div class="USRLOCKED">
-    <input type="text" @bind="name" />
-   </div>
-   @if (myUser.id != -1)
-   {
-    <button class="SAVE" @onclick="saveName">Update Name</button>
-   }
-
-  </div>
-
-  <div class="LINE0">
-   <div class="LABEL">
-    Access Level
-   </div>
-   <div class="USRLOCKED">
-    <input type="number" @bind="access" />
-   </div>
-
-   @if (myUser.id != -1)
-   {
-    <button class="SAVE" @onclick="saveAccess">Update Access</button>
-   }
-
-  </div>
 
 
 
@@ -96,54 +102,56 @@
 
 
 
+  @if (SystemInformation.session.AccessLevel >= 8)
+  {
+   <div class="LINE1">
 
-  <div class="LINE1">
-
-   <div class="USRLOCKED">
-    <input type="checkbox" @bind="isLocked" />
-   </div>
-   <div class="LABEL">
-    Locked
-   </div>
-
-  </div>
-  <div class="LINE2">
-   <div class="USREXPRD">
-    <input type="checkbox" @bind="isExpired" />
-   </div>
-   <div class="LABEL">
-    Password Expired
-   </div>
-  </div>
-
-  <div class="LINE3">
-   @if (generatedPassword == "")
-   {
-    <div class="GENPWCONTAINER">
-     <button class="GENPW" @onclick="generateNewPassword">Generate New Password</button>
+    <div class="USRLOCKED">
+     <input type="checkbox" @bind="isLocked" />
     </div>
-   }
-   else
-   {
-    <span>
-     New Password:
-    </span>
-    <span class="GENERATEDPASSWORD">
-     @generatedPassword
-    </span>
-   }
+    <div class="LABEL">
+     Locked
+    </div>
 
-  </div>
+   </div>
+   <div class="LINE2">
+    <div class="USREXPRD">
+     <input type="checkbox" @bind="isExpired" />
+    </div>
+    <div class="LABEL">
+     Password Expired
+    </div>
+   </div>
 
-  <div class="LINE4">
+   <div class="LINE3">
+    @if (generatedPassword == "")
+    {
+     <div class="GENPWCONTAINER">
+      <button class="GENPW" @onclick="generateNewPassword">Generate New Password</button>
+     </div>
+    }
+    else
+    {
+     <span>
+      New Password:
+     </span>
+     <span class="GENERATEDPASSWORD">
+      @generatedPassword
+     </span>
+    }
 
-   @if (myUser.id == -1 && generatedPassword != "" && myUser.username != "")
-   {
-    <button class="SAVE" @onclick="saveclose">Save user & close</button>
-   }
 
-  </div>
+   </div>
 
+   <div class="LINE4">
+
+    @if (myUser.id == -1 && generatedPassword != "" && myUser.username != "")
+    {
+     <button class="SAVE" @onclick="saveclose">Save user & close</button>
+    }
+
+   </div>
+  }
 
  </div>
 </div>

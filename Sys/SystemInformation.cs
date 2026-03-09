@@ -29,6 +29,8 @@ namespace Apollo2.Sys
   public static double sysLong {get;set;}
   public static double sysZoom {get;set;}
 
+  public static bool mapLoaded { get;set;}
+
   public static string windowid
   {
    get

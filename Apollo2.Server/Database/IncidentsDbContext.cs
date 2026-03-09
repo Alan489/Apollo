@@ -291,7 +291,6 @@ namespace Apollo2.Server.Database
      using var reader = await command.ExecuteReaderAsync();
      incs = DataReaderMapToList<Incident>(reader);
      if (incs.Count == 0) return null;
-     incs[0].location_num = incs[0].unit_number;
      return incs[0];
     }
    }
@@ -390,10 +389,64 @@ namespace Apollo2.Server.Database
 
      using var command = mysqlconnection.CreateCommand();
 
-     command.CommandText = @"UPDATE incidents SET incident_status = 'Open', disposition = '', ts_complete = NULL
+     command.CommandText = @"UPDATE incidents SET incident_status = 'Open', disposition = '', ts_complete = NULL, updated = NOW()
                              WHERE incident_id = @ID";
 
      command.Parameters.AddWithValue("@ID", id);
+
+     await command.ExecuteNonQueryAsync();
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex.ToString());
+    return;
+   }
+  }
+
+  public async Task markOnScene(int inc_id)
+  {
+   try
+   {
+    List<Incident> incs = new List<Incident>();
+
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+
+     command.CommandText = @"UPDATE incidents SET ts_arrival = NOW(), updated = NOW()
+                             WHERE incident_id = @ID";
+
+     command.Parameters.AddWithValue("@ID", inc_id);
+
+     await command.ExecuteNonQueryAsync();
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex.ToString());
+    return;
+   }
+  }
+
+  public async Task markDispatch(int inc_id)
+  {
+   try
+   {
+    List<Incident> incs = new List<Incident>();
+
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+
+     command.CommandText = @"UPDATE incidents SET ts_dispatch = NOW(), updated = NOW()
+                             WHERE incident_id = @ID";
+
+     command.Parameters.AddWithValue("@ID", inc_id);
 
      await command.ExecuteNonQueryAsync();
     }
@@ -431,6 +484,7 @@ namespace Apollo2.Server.Database
    return;
   }
 
+
   public static string getUpdateString<T>(T obj)
   {
    string str = "";
@@ -438,7 +492,7 @@ namespace Apollo2.Server.Database
 
    foreach (PropertyInfo prop in obj.GetType().GetProperties())
    {
-    if (prop.Name == "attachedUnits" || prop.Name == "incident_id") continue;
+    if (prop.Name == "attachedUnits" || prop.Name == "incident_id" || prop.Name == "ts_dispatch" || prop.Name == "ts_arrival") continue;
     if (prop.GetValue(obj) == null) continue;
     str += ", " + prop.Name + " = @PARA" + prop.Name;
 

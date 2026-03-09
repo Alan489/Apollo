@@ -1,0 +1,98 @@
+﻿@using Apollo2.Shared.Sys.Data.Map
+@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+
+<div class="ROOT">
+
+ <div class="HEADER">
+  <div class="TITLE">
+   Point of Interest Category Editor
+  </div>
+  <div class="CONTROLS">
+   <button class="DISCARD" @onclick="discard">DISCARD</button>
+   <button class="SAVE" @onclick="save">Save</button>
+   <button class="SAVE" @onclick="saveclose">Save & Close</button>
+  </div>
+ </div>
+
+ <div class="BODY">
+  
+ </div>
+</div>
+
+@code {
+
+ [Parameter]
+ public required Window para { get; set; }
+
+ private List<POICategory> categories
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("CATEGORIES"))
+    return new List<POICategory>();
+
+   return ((List<POICategory>)para.memory["CATEGORIES"]);
+  }
+  set
+  {
+   para.memory["CATEGORIES"] = value;
+  }
+ }
+
+ private void discard()
+ {
+  WindowManager.closePage(para);
+ }
+
+
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleUpdate;
+
+  if (para.firstRender)
+   await FIRSTRENDER();
+
+
+ }
+
+ private void handleUpdate(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.window == para && (we.type != windowEvent.WindowEventType.opened || we.type != windowEvent.WindowEventType.maximized))
+  {
+   WindowManager.WindowChanged -= handleUpdate;
+  }
+ }
+
+ private async Task FIRSTRENDER()
+ {
+  para.firstRender = false;
+
+  StateHasChanged();
+ }
+
+ private async Task saveclose()
+ {
+  await save();
+  discard();
+ }
+
+ private async Task save()
+ {
+  UnitUpdateRequest uur = new UnitUpdateRequest();
+  uur.session = SystemInformation.session;
+  await _http.PostAsJsonAsync<UnitUpdateRequest>(SystemInformation.sysURL+"/API/Units/Units/update/", uur);
+ }
+
+
+}
