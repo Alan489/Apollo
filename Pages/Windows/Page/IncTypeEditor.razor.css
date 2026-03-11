@@ -55,8 +55,6 @@
 
 .TABLE {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 1em;
 }
 
   .ID:hover {
@@ -122,4 +120,60 @@ input[type=text] {
   background-color: #333;
   border-radius: 7px;
   color: white;
+}
+
+.ACTIVEY, .ACTIVEN{
+  width: 7em;
+}
+
+.ACTIVEY .SLIDERBASE {
+  background-color: #5A5;
+  float: right;
+  margin-right: 8px;
+}
+
+  .ACTIVEN .SLIDERBASE {
+    background-color: #A55;
+    float: right;
+    margin-right: 8px;
+  }
+
+.SLIDERBASE {
+  height: 1em;
+  width: 2em;
+  border-radius: 3px;
+  transition: background-color ease-in-out .2s;
+}
+
+.SLIDERBUTTON {
+  height: 1em;
+  width: 1em;
+  border-radius: 3px 3px 3px 3px;
+  background-color: #BBB;
+  position: relative;
+  transition: left ease-in-out .2s;
+}
+
+.ACTIVEY .SLIDERBUTTON {
+  left: 1em;
+}
+
+.ACTIVEN .SLIDERBUTTON {
+  left: 0em;
+}
+
+.NEW button {
+  align-content: center;
+  transition: background-color ease-in-out .2s;
+  outline: none;
+  line-height: 1em;
+  border: 1px solid #595;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #595;
+  font-family: "Noto Sans Mono", monospace;
+  margin-left: 10px;
+}
+.NEW button:hover {
+  background: rgba(50, 75, 50, .5);
 }

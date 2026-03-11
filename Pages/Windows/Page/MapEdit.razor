@@ -19,24 +19,45 @@
   </div>
   <div class="CONTROLS">
 
-    @switch (status)
+   @if (status.StartsWith("ERROR"))
    {
-    case "DELPOI":
-    case "CREATEPOI2":
-     break;
-     default:
-     {
-       @if (status.StartsWith("ERROR"))
-       {
-        <div class="error">
-          FAILED TO LOAD
-        </div>
-       } else
-       {
-        <button @onclick="createPOI">@(status == "CREATEPOI" ? "Cancel POI" : "Create POI")</button>
-       }
+    <div class="error">
+     FAILED TO LOAD
+    </div>
+   } else
+   {
+    @switch (status)
+    {
+     case "DELPOI":
+     case "CREATEPOI2":
+     case "CREATELINE2":
       break;
-     }
+      case "CREATEPOLY":
+      {
+       <button @onclick="createPoly">Cancel Poly</button>
+       <button @onclick="savePoly">Save Poly</button>
+       break;
+      }
+     case "CREATELINE":
+      {
+       <button @onclick="createLine">Cancel Line</button>
+       <button @onclick="saveLine">Save Line</button>
+       break;
+      }
+     case "CREATEPOI":
+      {
+        <button @onclick="createPOI">@(status == "CREATEPOI" ? "Cancel POI" : "Create POI")</button>
+        break;
+      }
+     default:
+      {
+         <button @onclick="createPOI">Create POI</button>
+         <button @onclick="createLine">Create Line Object</button>
+         <button @onclick="createPoly">Create Poly Object</button>
+         <button @onclick="openDelete">Manage Objects</button>
+         break;
+      }
+    }
    }
    <button class="DISCARD" @onclick="discard">CLOSE</button>
   </div>
@@ -75,6 +96,58 @@
      break;
     }
 
+    case "CREATELINE2":
+     {
+       <div class="SUBPANEL">
+         <div class="SUBPANELHEADER">
+           Creating new Line
+         </div>
+         <div class="SUBPANELBODY">
+           Category (Utilizes background color) <br />
+           <select @bind="poiSelectedCategory">
+             @foreach(POICategory category in categories)
+              {
+               <option value="@category.name">@category.name</option>
+              }
+           </select>
+           <br />
+           Name<br />
+           <input type="text" @bind-value="poiName" />
+           <br />
+           <button class="SAVE" @onclick="lineSave">Save</button>
+           <button class="DISCARD" @onclick="lineCancel">Cancel</button>
+
+         </div>
+       </div>
+     break;
+    }
+
+    case "CREATEPOLY2":
+     {
+       <div class="SUBPANEL">
+         <div class="SUBPANELHEADER">
+           Creating new Line
+         </div>
+         <div class="SUBPANELBODY">
+           Category (Utilizes background color) <br />
+           <select @bind="poiSelectedCategory">
+             @foreach(POICategory category in categories)
+              {
+               <option value="@category.name">@category.name</option>
+              }
+           </select>
+           <br />
+           Name<br />
+           <input type="text" @bind-value="poiName" />
+           <br />
+           <button class="SAVE" @onclick="polySave">Save</button>
+           <button class="DISCARD" @onclick="polyCancel">Cancel</button>
+
+         </div>
+       </div>
+     break;
+    }
+
     case "DELPOI":
     {
       <div class="SUBPANEL">
@@ -99,13 +172,21 @@
         center="@SystemInformation.session.sysLat,@SystemInformation.session.sysLon" 
         zoom="@SystemInformation.session.sysZoom"
         map-id="48d80325ba0e741c57a7e0a4">
+        @if (status == "IDLE")
         @foreach(poi point in points)
          {
           <gmp-advanced-marker position="@point.poi_lat,@point.poi_lng" >
             <div class="poiMarker" style="background-color:rgba(@(getbgcolor(point)),.75);color:rgb(@(getfgcolor(point)))" @onclick="() => deletePOI(point.poi_id)" >@point.poi_shortname</div>
           </gmp-advanced-marker>
          }
-        </gmp-map>
+         @if (status == "CREATELINE" || status == "CREATEPOLY")
+         @foreach(coordinatePair pair in pairList)
+         {
+          <gmp-advanced-marker position="@pair.lat,@pair.lng" >
+            <div class="poiMarker" style="background-color:rgb(175,175,175)">&nbsp;</div>
+          </gmp-advanced-marker>
+         }
+       </gmp-map>
         @if (SystemInformation.mapLoaded == false)
        {
        <script src="@($"https://maps.googleapis.com/maps/api/js?key={SystemInformation.session.googleLink}&callback=initMapEdit&v=weekly&libraries=marker,maps,core")"
@@ -184,6 +265,13 @@
  private List<poi> points = new List<poi>();
  private List<POICategory> categories = new List<POICategory>();
 
+ private List<coordinatePair> pairList = new List<coordinatePair>();
+ private struct coordinatePair
+ {
+  public double lat;
+  public double lng;
+ }
+
  private void discard()
  {
   WindowManager.closePage(para);
@@ -219,6 +307,192 @@
   status = "CREATEPOI";
   StateHasChanged();
   return;
+ }
+
+ private void saveLine()
+ {
+  if (pairList.Count < 2)
+  {
+   WindowManager.AddModal("WRN", "Failed to save line", "Lines require at least two points.");
+   return;
+  }
+  status = "CREATELINE2";
+  StateHasChanged();
+ }
+
+ private void createLine()
+ {
+  if (status.StartsWith("ERROR"))
+   return;
+  if (status == "CREATELINE")
+  {
+   status = "IDLE";
+   pairList.Clear();
+   StateHasChanged();
+   return;
+  }
+  status = "CREATELINE";
+  StateHasChanged();
+  return;
+ }
+
+ private async void lineSave()
+ {
+  if (string.IsNullOrEmpty(poiName) || string.IsNullOrEmpty(poiSelectedCategory))
+  {
+   WindowManager.AddModal("WRN", "Error", "All fields are required to create a new Line");
+   return;
+  }
+
+  try
+  {
+   Poly poly = new Poly();
+   poly.category = poiSelectedCategory;
+   poly.name = poiName;
+   poly.type = "LINE";
+   poly.coordinates = new Dictionary<int, CoordinatePair>();
+
+   for (int i = 0; i < pairList.Count; i++)
+   {
+    CoordinatePair cp = new CoordinatePair();
+    cp.lat = pairList[i].lat;
+    cp.lng = pairList[i].lng;
+    poly.coordinates.Add(i, cp);
+    Console.WriteLine(i);
+   }
+
+   CreatePolyRequest cpr = new CreatePolyRequest();
+   cpr.session = SystemInformation.session;
+   cpr.poly = poly;
+   var response = await _http.PostAsJsonAsync<CreatePolyRequest>(SystemInformation.sysURL + $"/API/Map/Map/create/poly", cpr);
+   if (!response.IsSuccessStatusCode)
+   {
+    WindowManager.AddModal("ERR", "Error", "Failed to create the new Line. Please try again.");
+    return;
+   }
+   WindowManager.AddModal("SUC", "POI Created", $"Successfully created Line {poiName}");
+   status = "IDLE";
+   poiSelectedCategory = "";
+   poiName = "";
+   pairList.Clear();
+   StateHasChanged();
+  }
+  catch(Exception e)
+  {
+   WindowManager.AddModal("ERR", "Error", "Failed to create the new Line. Please try again.");
+   Console.WriteLine(e);
+  }
+
+ }
+
+ private void lineCancel()
+ {
+  if (status == "CREATELINE2")
+  {
+   pairList.Clear();
+   poiName = "";
+   poiSelectedCategory = "";
+   status = "IDLE";
+   StateHasChanged();
+  }
+ }
+
+
+
+
+ private void savePoly()
+ {
+  if (pairList.Count < 3)
+  {
+   WindowManager.AddModal("WRN", "Failed to save Poly", "Polys require at least three points.");
+   return;
+  }
+  status = "CREATEPOLY2";
+  StateHasChanged();
+ }
+
+ private void openDelete()
+ {
+  Window window = new Window();
+  window.Title = "Map Object List";
+  window.WINDOWTYPE = "MAPOBJ";
+  WindowManager.openPage(window);
+ }
+
+ private void createPoly()
+ {
+  if (status.StartsWith("ERROR"))
+   return;
+  if (status == "CREATEPOLY")
+  {
+   status = "IDLE";
+   pairList.Clear();
+   StateHasChanged();
+   return;
+  }
+  status = "CREATEPOLY";
+  StateHasChanged();
+  return;
+ }
+
+ private async void polySave()
+ {
+  if (string.IsNullOrEmpty(poiName) || string.IsNullOrEmpty(poiSelectedCategory))
+  {
+   WindowManager.AddModal("WRN", "Error", "All fields are required to create a new Poly");
+   return;
+  }
+
+  try
+  {
+   Poly poly = new Poly();
+   poly.category = poiSelectedCategory;
+   poly.name = poiName;
+   poly.type = "POLYGON";
+   poly.coordinates = new Dictionary<int, CoordinatePair>();
+
+   for (int i = 0; i < pairList.Count; i++)
+   {
+    CoordinatePair cp = new CoordinatePair();
+    cp.lat = pairList[i].lat;
+    cp.lng = pairList[i].lng;
+    poly.coordinates.Add(i, cp);
+   }
+
+   CreatePolyRequest cpr = new CreatePolyRequest();
+   cpr.session = SystemInformation.session;
+   cpr.poly = poly;
+   var response = await _http.PostAsJsonAsync<CreatePolyRequest>(SystemInformation.sysURL + $"/API/Map/Map/create/poly", cpr);
+   if (!response.IsSuccessStatusCode)
+   {
+    WindowManager.AddModal("ERR", "Error", "Failed to create the new Poly. Please try again.");
+    return;
+   }
+   WindowManager.AddModal("SUC", "POI Created", $"Successfully created Poly {poiName}");
+   status = "IDLE";
+   poiSelectedCategory = "";
+   poiName = "";
+   pairList.Clear();
+   StateHasChanged();
+  }
+  catch(Exception e)
+  {
+   WindowManager.AddModal("ERR", "Error", "Failed to create the new Poly. Please try again.");
+   Console.WriteLine(e);
+  }
+
+ }
+
+ private void polyCancel()
+ {
+  if (status == "CREATEPOLY2")
+  {
+   pairList.Clear();
+   poiName = "";
+   poiSelectedCategory = "";
+   status = "IDLE";
+   StateHasChanged();
+  }
  }
 
  private string poiSelectedCategory = "";
@@ -326,9 +600,6 @@
 
  public void receiveClick(double lat, double lng)
  {
-
-  Console.WriteLine($"{lat} {lng}");
-
   switch(status)
   {
    default:
@@ -337,6 +608,14 @@
     status = "CREATEPOI2";
     poiLat = lat;
     poiLng = lng;
+    StateHasChanged();
+    return;
+   case "CREATEPOLY":
+   case "CREATELINE":
+    coordinatePair np = new coordinatePair();
+    np.lat = lat;
+    np.lng = lng;
+    pairList.Add(np);
     StateHasChanged();
     return;
   }

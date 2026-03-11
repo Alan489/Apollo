@@ -12,27 +12,100 @@
   SYSTEM MANAGEMENT
  </div>
  <div class="BODY">
-  <div class="EDITBUTTONS">
+  <div class="ManagementSection">
+    <div class="ManagementHeader">
+      Map Controls
+    </div>
+    <div class="ManagementBody">
     @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 5)
-   {
-    <button @onclick="openMapEditor">
-      Edit Points of Interest
-    </button>
-   }
+    {
+      <div class="ManagementOption">
+        <div class="ManagmentOptionLabel">
+          Manage Map Objects and Points of Interest
+        </div>
+        <div class="ManagmentOptionButtonContainer">
+         <button @onclick="openMapEditor">
+          GO ->
+         </button>
+        </div>
+      </div>
+     
+    }
 
-   @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 8)
-   {
-     <br />
-    <button @onclick="openCategoryEditor">
-     Edit Point of Interest Categories
-    </button>
-   }
-   else
-   {
-    <div class="Unauthorized">You are not authorized to edit POI Categories.</div>
-   }
-
+    @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 6)
+    {
+     <div class="ManagementOption">
+      <div class="ManagmentOptionLabel">
+       Manage Map Object Categories
+      </div>
+      <div class="ManagmentOptionButtonContainer">
+       <button @onclick="openCategoryEditor">
+        GO ->
+       </button>
+      </div>
+     </div>
+     
+    }
+    else
+    {
+     <div class="ManagementOption Unauthorized">
+      <div class="ManagmentOptionLabel">
+       Manage Map Object Categories
+      </div>
+        <div class="ManagementOptionUnauthorized">You are not authorized to edit Map Object Categories.</div>
+     </div>
+    }
+    </div>
   </div>
+
+  <div class="ManagementSection">
+    <div class="ManagementHeader">
+      Incident Management
+    </div>
+    <div class="ManagementBody">
+    @if (SystemInformation.session != null && SystemInformation.session.AccessLevel >= 7)
+    {
+     <div class="ManagementOption">
+      <div class="ManagmentOptionLabel">
+       Manage Incident Dispositions
+      </div>
+      <div class="ManagmentOptionButtonContainer">
+       <button @onclick="openIncidentDispositionEditor">
+        GO ->
+       </button>
+      </div>
+     </div>
+     <div class="ManagementOption">
+      <div class="ManagmentOptionLabel">
+       Manage Incident Types
+      </div>
+      <div class="ManagmentOptionButtonContainer">
+       <button @onclick="openIncidentTypeEditor">
+        GO ->
+       </button>
+      </div>
+     </div>
+     
+    }
+    else
+    {
+     <div class="ManagementOption Unauthorized">
+      <div class="ManagmentOptionLabel">
+       Manage Incident Dispositions
+      </div>
+      <div class="ManagementOptionUnauthorized">You are not authorized to edit Incident Dispositions.</div>
+     </div>
+
+     <div class="ManagementOption Unauthorized">
+      <div class="ManagmentOptionLabel">
+       Manage Incident Types
+      </div>
+      <div class="ManagementOptionUnauthorized">You are not authorized to edit Incident Types.</div>
+     </div>
+    }
+    </div>
+  </div>
+
  </div>
 </div>
 
@@ -60,20 +133,38 @@
 
  private async void openMapEditor()
  {
-  Window mapEditorWindow = new Window();
-  mapEditorWindow.Title = "Map Editor";
-  mapEditorWindow.WINDOWTYPE = "MAPEDIT";
-  mapEditorWindow.property = "";
-  WindowManager.openPage(mapEditorWindow);
+  Window newWindow = new Window();
+  newWindow.Title = "Map Editor";
+  newWindow.WINDOWTYPE = "MAPEDIT";
+  newWindow.property = "";
+  WindowManager.openPage(newWindow);
  }
 
  private async void openCategoryEditor()
  {
-  Window mapEditorWindow = new Window();
-  mapEditorWindow.Title = "Category Editor";
-  mapEditorWindow.WINDOWTYPE = "CATEDIT";
-  mapEditorWindow.property = "";
-  WindowManager.openPage(mapEditorWindow);
+  Window newWindow = new Window();
+  newWindow.Title = "Category Editor";
+  newWindow.WINDOWTYPE = "CATEDIT";
+  newWindow.property = "";
+  WindowManager.openPage(newWindow);
+ }
+
+ private async void openIncidentDispositionEditor()
+ {
+  Window newWindow = new Window();
+  newWindow.Title = "Disposition Editor";
+  newWindow.WINDOWTYPE = "DISEDIT";
+  newWindow.property = "";
+  WindowManager.openPage(newWindow);
+ }
+
+ private async void openIncidentTypeEditor()
+ {
+  Window newWindow = new Window();
+  newWindow.Title = "Incident Type Editor";
+  newWindow.WINDOWTYPE = "INCTEDIT";
+  newWindow.property = "";
+  WindowManager.openPage(newWindow);
  }
 
 }

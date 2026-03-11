@@ -1,0 +1,227 @@
+﻿@using Apollo2.Shared.Sys.Data.Map
+@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@using System.Web
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+
+<div class="ROOT">
+
+ <div class="HEADER">
+  <div class="TITLE">
+   Incident Disposition Type Editor
+  </div>
+  <div class="CONTROLS">
+   <button class="DISCARD" @onclick="discard">CLOSE</button>
+  </div>
+ </div>
+
+ <div class="BODY">
+  <table class="TABLE">
+   @foreach (DispositionModification tm in types)
+   {
+    <tr class="ID">
+     <td class="ACTIVE@(tm.Active)">
+      <div class="SLIDERBASE" @onclick="() => toggle(tm)"><div class="SLIDERBUTTON"></div></div>
+     </td>
+     <td class="NAME">
+      @tm.Disposition
+     </td>
+    </tr>
+   }
+   <tr class="ID">
+    <td class="NEW">
+     <button @onclick="save">Create&nbsp;New</button>
+    </td>
+    <td class="NAME">
+     <input type="text" @bind-value="NewTypeName" />
+    </td>
+   </tr>
+  </table>
+ </div>
+</div>
+
+@code {
+
+ [Parameter]
+ public required Window para { get; set; }
+
+ private List<DispositionModification> types
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("TYPES"))
+    return new List<DispositionModification>();
+
+   return ((List<DispositionModification>)para.memory["TYPES"]);
+  }
+  set
+  {
+   para.memory["TYPES"] = value;
+  }
+ }
+ private string NewTypeName
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("NTN"))
+    return "";
+
+   return ((string)para.memory["NTN"]);
+  }
+  set
+  {
+   para.memory["NTN"] = value;
+  }
+ }
+
+ private void discard()
+ {
+  WindowManager.closePage(para);
+ }
+
+
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleUpdate;
+
+  if (para.firstRender)
+   await FIRSTRENDER();
+
+
+ }
+
+ private void handleUpdate(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.window == para && (we.type != windowEvent.WindowEventType.opened || we.type != windowEvent.WindowEventType.maximized))
+  {
+   WindowManager.WindowChanged -= handleUpdate;
+  }
+ }
+
+ private async Task FIRSTRENDER()
+ {
+  para.firstRender = false;
+
+  try
+  {
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/get/dispotypes/modification", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    return;
+   }
+   List<DispositionModification>? retCAT = await response.Content.ReadFromJsonAsync<List<DispositionModification>>();
+   if (retCAT == null)
+   {
+    Console.WriteLine("retCAT null.");
+    return;
+   }
+   types = retCAT;
+
+   StateHasChanged();
+  }
+  catch (Exception e)
+  {
+   Console.WriteLine(e);
+  }
+
+  StateHasChanged();
+ }
+
+ private async Task toggle(DispositionModification tm)
+ {
+  if (tm.Active == 'Y')
+   tm.Active = 'N';
+  else
+   tm.Active = 'Y';
+
+  try
+  {
+
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/modify/dispotypes/{HttpUtility.UrlEncode(tm.Disposition)}/{tm.Active}", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    if (tm.Active == 'Y')
+     tm.Active = 'N';
+    else
+     tm.Active = 'Y';
+    WindowManager.AddModal("ERR", "Failed to update", "Failed to update " + tm.Disposition);
+    StateHasChanged();
+    return;
+   }
+
+  }
+  catch (Exception e)
+  {
+   Console.WriteLine(e);
+   if (tm.Active == 'Y')
+    tm.Active = 'N';
+   else
+    tm.Active = 'Y';
+   WindowManager.AddModal("ERR", "Failed to update", "Failed to update " + tm.Disposition);
+   StateHasChanged();
+   return;
+  }
+
+  StateHasChanged();
+
+ }
+
+ private async Task save()
+ {
+  if (string.IsNullOrEmpty(NewTypeName))
+  {
+   WindowManager.AddModal("ERR", "Failed to add.", "Field 'Incident Type' is required.");
+   return;
+  }
+
+  if (types.FirstOrDefault(m => m.Disposition.ToLower() == NewTypeName.ToLower()) != null)
+  {
+   WindowManager.AddModal("ERR", "Failed to add", $"{NewTypeName} may already exist.");
+   return;
+  }
+
+  try
+  {
+
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Incidents/Incidents/create/dispotypes/{HttpUtility.UrlEncode(NewTypeName)}", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    WindowManager.AddModal("ERR", "Failed to add", "Failed to add. Please try again later.");
+    StateHasChanged();
+    return;
+   }
+
+   DispositionModification tm = new DispositionModification();
+   tm.Active = 'Y';
+   tm.Disposition = NewTypeName;
+
+   types.Add(tm);
+   NewTypeName = "";
+
+  }
+  catch (Exception e)
+  {
+   Console.WriteLine(e);
+   WindowManager.AddModal("ERR", "Failed to add", "Failed to add. Please try again later.");
+   StateHasChanged();
+   return;
+  }
+
+  StateHasChanged();
+
+ }
+
+
+}

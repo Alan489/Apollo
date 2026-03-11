@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using Apollo2.Server.Services;
 using Apollo2.Shared.Sys.Data.Incidents;
+using System.Web;
 
 namespace Apollo2.Server.Controllers.Incidents
 {
@@ -166,6 +167,68 @@ namespace Apollo2.Server.Controllers.Incidents
    return resulting;
   }
 
+  // API/Incidents/Incidents/get/inctypes/modification
+  //Access Level: 7
+  [HttpPost("get/inctypes/modification")]
+  public async Task<IActionResult> getIncidentModificationTypes(UserSession sess)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(sess, 7);
+
+   if (ar.success == false)
+    return Unauthorized();
+
+   List<TypeModification>? types = await _idbc.getIncidentModificationTypes();
+
+   if (types == null)
+    return BadRequest();
+
+
+
+   ObjectResult resulting = new ObjectResult(types);
+   resulting.StatusCode = (int)HttpStatusCode.OK;
+   return resulting;
+  }
+
+  // API/Incidents/Incidents/create/inctypes/{type}
+  //Access Level: 7
+  [HttpPost("create/inctypes/{type}")]
+  public async Task<IActionResult> createIncidentType(UserSession sess, string type)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(sess, 7);
+
+   if (ar.success == false)
+    return Unauthorized();
+   type = HttpUtility.UrlDecode(type);
+   await _idbc.createIncidentType(type);
+
+   return Ok();
+  }
+
+  // API/Incidents/Incidents/modify/inctypes/{type}/{val}
+  //Access Level: 7
+  [HttpPost("modify/inctypes/{type}/{val}")]
+  public async Task<IActionResult> modifyIncidentType(UserSession sess, string type, string val)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(sess, 7);
+
+   if (ar.success == false)
+    return Unauthorized();
+
+   if (string.IsNullOrEmpty(val) || string.IsNullOrEmpty(type) || val.Length != 1)
+    return BadRequest();
+
+   char v = val[0];
+
+   if (v != 'Y' && v != 'N')
+    return BadRequest();
+
+   type = HttpUtility.UrlDecode(type);
+
+   await _idbc.updateIncidentType(type, v);
+
+   return Ok();
+  }
+
   // API/Incidents/Incidents/get/dispotypes
   [HttpPost("get/dispotypes")]
   public async Task<IActionResult> getIncidentDispoTypes(UserSession sess)
@@ -185,6 +248,66 @@ namespace Apollo2.Server.Controllers.Incidents
    ObjectResult resulting = new ObjectResult(types);
    resulting.StatusCode = (int)HttpStatusCode.OK;
    return resulting;
+  }
+
+  // API/Incidents/Incidents/get/dispotypes
+  [HttpPost("get/dispotypes/modification")]
+  public async Task<IActionResult> getIncidentDispoModificationTypes(UserSession sess)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(sess);
+
+   if (ar.success == false)
+    return Unauthorized();
+
+   List<DispositionModification>? types = await _idbc.getIncidentDispoModificationTypes();
+
+   if (types == null)
+    return BadRequest();
+
+
+
+   ObjectResult resulting = new ObjectResult(types);
+   resulting.StatusCode = (int)HttpStatusCode.OK;
+   return resulting;
+  }
+
+
+  // API/Incidents/Incidents/create/dispotypes/{type}
+  //Access Level: 7
+  [HttpPost("create/dispotypes/{type}")]
+  public async Task<IActionResult> createDispositionType(UserSession sess, string type)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(sess, 7);
+
+   if (ar.success == false)
+    return Unauthorized();
+   type = HttpUtility.UrlDecode(type);
+   await _idbc.createDispoType(type);
+
+   return Ok();
+  }
+
+  // API/Incidents/Incidents/modify/dispotypes/{type}/{val}
+  //Access Level: 7
+  [HttpPost("modify/dispotypes/{type}/{val}")]
+  public async Task<IActionResult> modifyDispositionType(UserSession sess, string type, string val)
+  {
+   AuthenticationResponse ar = await _auth.verifySession(sess, 7);
+
+   if (ar.success == false)
+    return Unauthorized();
+
+   if (string.IsNullOrEmpty(val) || string.IsNullOrEmpty(type) || val.Length != 1)
+    return BadRequest();
+   type = HttpUtility.UrlDecode(type);
+   char v = val[0];
+
+   if (v != 'Y' && v != 'N')
+    return BadRequest();
+
+   await _idbc.updateDispoType(type, v);
+
+   return Ok();
   }
 
   // API/Incidents/Incidents/get/incnotes/{inc}

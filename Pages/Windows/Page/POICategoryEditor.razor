@@ -13,17 +13,51 @@
 
  <div class="HEADER">
   <div class="TITLE">
-   Point of Interest Category Editor
+   Map Object Category Editor
   </div>
   <div class="CONTROLS">
-   <button class="DISCARD" @onclick="discard">DISCARD</button>
-   <button class="SAVE" @onclick="save">Save</button>
-   <button class="SAVE" @onclick="saveclose">Save & Close</button>
+   <button class="DISCARD" @onclick="discard">DISCARD UNSAVED CHANGES & CLOSE</button>
   </div>
  </div>
 
  <div class="BODY">
-  
+  <table class="TABLE">
+   @foreach (POICategory cat in categories)
+   {
+    <tr class="ID">
+      @if (cat.cat_id == -1)
+     {
+      <td class="NAME">
+       <input type="text" @bind-value="cat.name" />
+      </td>
+     } else
+     {
+      <td class="NAME">
+       @cat.name
+      </td>
+     }
+     
+     <td class="BG">
+       <input type="number" @bind-value="cat.bgr" />
+       <input type="number" @bind-value="cat.bgg" />
+       <input type="number" @bind-value="cat.bgb" />
+      <div class="ColorDisplay" style="background-color:rgb(@(getbgcolor(cat))); color:rgb(@(getfgcolor(cat)))">This is how @cat.name will appear on the map.</div>
+     </td>
+     <td class="FG">
+      <input type="number" @bind-value="cat.fgr" />
+      <input type="number" @bind-value="cat.fgg"/>
+      <input type="number" @bind-value="cat.fgb"/>
+      <div>&nbsp;</div>
+     </td>
+     <td class="Save">
+       <button class="SAVE" @onclick="() => save(cat)">Save</button>
+     </td>
+    </tr>
+   }
+   <td colspan="4" class="NEWCAT" @onclick="newCategory">
+    New Category
+   </td>
+  </table>
  </div>
 </div>
 
@@ -78,20 +112,128 @@
  {
   para.firstRender = false;
 
+  try
+  {
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/get/cat", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    return;
+   }
+   List<POICategory>? retCAT = await response.Content.ReadFromJsonAsync<List<POICategory>>();
+   if (retCAT == null)
+   {
+    Console.WriteLine("retCAT null.");
+    return;
+   }
+   categories = retCAT;
+
+   StateHasChanged();
+  }
+  catch (Exception e)
+  {
+   Console.WriteLine(e);
+  }
+
   StateHasChanged();
  }
 
- private async Task saveclose()
+ private async Task save(POICategory cat)
  {
-  await save();
-  discard();
+  if (cat.cat_id == -1)
+  {
+   if (cat.name == "CHANGEME")
+   {
+    WindowManager.AddModal("WRN", "Save Failure", "Failed to save new category. Name field must be updated.");
+    return;
+   }
+
+   if (categories.FirstOrDefault(t => t.name.ToLower() == cat.name.ToLower() && t.cat_id != -1) != null)
+   {
+    WindowManager.AddModal("WRN", "Save Failure", "Failed to save new category. Name field matches existing category.");
+    return;
+   }
+
+   try
+   {
+    UpdateCategoryRequest ucr = new UpdateCategoryRequest();
+    ucr.session = SystemInformation.session;
+    ucr.Category = cat;
+
+    var response = await _http.PostAsJsonAsync<UpdateCategoryRequest>(SystemInformation.sysURL + $"/API/Map/Map/update/poicategory", ucr);
+    if (!response.IsSuccessStatusCode)
+    {
+     WindowManager.AddModal("ERR", "Save Failure", "Failed to save new category. Please try again.");
+     Console.WriteLine("Response not 200(OK).");
+     return;
+    }
+    int retCAT = int.Parse(await response.Content.ReadAsStringAsync());
+
+    if (retCAT == -1)
+    {
+     WindowManager.AddModal("ERR", "Save Failure", "Failed to save new category. Please try again.");
+     return;
+    }
+    cat.cat_id = retCAT;
+    StateHasChanged();
+   }
+   catch (Exception e)
+   {
+    WindowManager.AddModal("ERR", "Save Failure", "Failed to save new category. Please try again.");
+   }
+
+    WindowManager.AddModal("SUC", "Save Success", $"Successfully created new category {cat.name}");
+   return;
+  }
+
+
+  try
+  {
+   UpdateCategoryRequest ucr = new UpdateCategoryRequest();
+   ucr.session = SystemInformation.session;
+   ucr.Category = cat;
+
+   var response = await _http.PostAsJsonAsync<UpdateCategoryRequest>(SystemInformation.sysURL + $"/API/Map/Map/update/poicategory", ucr);
+   if (!response.IsSuccessStatusCode)
+   {
+    WindowManager.AddModal("ERR", "Save Failure", $"Failed to save category {cat.name}. Please try again.");
+    Console.WriteLine("Response not 200(OK).");
+    return;
+   }
+   StateHasChanged();
+   WindowManager.AddModal("SUC", "Save Success", $"Successfully saved category {cat.name}");
+  }
+  catch (Exception e)
+  {
+   WindowManager.AddModal("ERR", "Save Failure", $"Failed to save category {cat.name}. Please try again.");
+  }
+
+  return;
+
+
+
  }
 
- private async Task save()
+ private void newCategory()
  {
-  UnitUpdateRequest uur = new UnitUpdateRequest();
-  uur.session = SystemInformation.session;
-  await _http.PostAsJsonAsync<UnitUpdateRequest>(SystemInformation.sysURL+"/API/Units/Units/update/", uur);
+  POICategory newcat = new POICategory();
+  newcat.name = "CHANGEME";
+  newcat.cat_id = -1;
+  categories.Add(newcat);
+  StateHasChanged();
+ }
+
+ private string getbgcolor(POICategory cat)
+ {
+  if (cat == null)
+   return "255,255,255";
+  return cat.bgcolor;
+ }
+ private string getfgcolor(POICategory cat)
+ {
+  if (cat == null)
+   return "0,0,0";
+  return cat.color;
  }
 
 

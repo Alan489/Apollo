@@ -30,6 +30,7 @@
 }
 
 .UnitContainer,
+.UnitBusyContainer,
 .UnitAttachedContainer {
   border-radius: 10px 0px 10px 0px;
   padding: 5px;
@@ -49,6 +50,14 @@
   background-color: #333
 }
 
+.UnitBusyContainer {
+  border-top: 3px solid #AA5;
+  border-left: 3px solid #AA5;
+  border-right: 3px solid #773;
+  border-bottom: 3px solid #773;
+  background-color: #332
+}
+
 .UnitAttachedContainer {
   border-top: 3px solid #E22;
   border-left: 3px solid #E22;
@@ -63,28 +72,30 @@
 }
 
 .UnitPersonnel {
-  height: 1.5em;
+  min-height: 1.5em;
   overflow: clip;
+  margin-bottom: 10px;
 }
 
 .UnitAttachedContainer
+.UnitHeader,
+.UnitAttachedContainer
 .UnitPersonnel {
-  border-bottom: 3px solid #744;
+  border-bottom: 3px solid #A55;
 }
 
+.UnitContainer
+.UnitHeader,
 .UnitContainer
 .UnitPersonnel {
   border-bottom: 3px solid #666;
 }
 
-.UnitAttachedContainer 
-.UnitHeader {
-  border-bottom: 3px solid #744;
-}
-
-.UnitContainer 
-.UnitHeader {
-  border-bottom: 3px solid #666;
+.UnitBusyContainer
+.UnitHeader,
+.UnitBusyContainer
+.UnitPersonnel {
+  border-bottom: 3px solid #AA5;
 }
 
 .UnitInService {

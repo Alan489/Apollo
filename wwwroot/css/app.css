@@ -10,6 +10,7 @@
 html, body {
   user-select: none;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: #3a3a3a;
 }
 
 h1:focus {
@@ -102,11 +103,22 @@ a, .btn-link {
     text-align: center;
     font-weight: bold;
     inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    font-family: speeday-regular;
+    font-size: 70px;
+    color: #666;
+    overflow: clip;
+    text-shadow:3px 5px 4px black;
 }
 
-    .loading-progress-text:after {
-        content: var(--blazor-load-percentage-text, "Loading");
-    }
+  .loading-progress-text div {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 50px;
+  }
+
+  .loading-progress-text:after {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    content: var(--blazor-load-percentage-text);
+  }
 
 code {
     color: #c02d76;

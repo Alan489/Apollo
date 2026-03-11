@@ -6,6 +6,7 @@
 @using Apollo2.Shared.Sys.User
 @using Apollo2.Shared.Sys.Data.Units
 @using System.Timers
+@using System.Text.Json
 @inject HttpClient _http
 @inject IJSRuntime JSRuntime
 
@@ -21,17 +22,17 @@
   center="@SystemInformation.session.sysLat,@SystemInformation.session.sysLon" 
   zoom="@SystemInformation.session.sysZoom"
   map-id="48d80325ba0e741c57a7e0a4">
+  @foreach(poi point in points)
+   {
+     <gmp-advanced-marker position="@point.poi_lat,@point.poi_lng" >
+      <div class="poiMarker" style="background-color:rgba(@(getbgcolor(point)),.75);color:rgb(@(getfgcolor(point)))">@point.poi_shortname</div>
+     </gmp-advanced-marker>
+   }
    @foreach(Incident incident in incidents)
    {
     <gmp-advanced-marker position="@incident.lat,@incident.log" >
       <div class="callLabel">INCIDENT</div>
     </gmp-advanced-marker>
-   }
-   @foreach(poi point in points)
-   {
-     <gmp-advanced-marker position="@point.poi_lat,@point.poi_lng" >
-      <div class="poiMarker" style="background-color:rgba(@(getbgcolor(point)),.75);color:rgb(@(getfgcolor(point)))">@point.poi_shortname</div>
-     </gmp-advanced-marker>
    }
   </gmp-map>
  </div>
@@ -46,6 +47,7 @@
  private List<Incident> incidents = new List<Incident>();
  private List<poi> points = new List<poi>();
  private List<POICategory> categories = new List<POICategory>();
+ private List<Poly> polys = new List<Poly>();
 
 
  protected override async Task OnInitializedAsync()
@@ -116,6 +118,51 @@
     return;
    }
    categories = retCAT;
+
+   response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/get/poly", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    return;
+   }
+   List<Poly>? retPOL = await response.Content.ReadFromJsonAsync<List<Poly>>();
+
+   if (retPOL == null)
+   {
+    Console.WriteLine("retCAT null.");
+    return;
+   }
+
+   foreach (Poly poly in polys)
+   {
+    //If this is true, this poly has been deleted.
+    if (retPOL.FirstOrDefault(p => p.id == poly.id) == null)
+    {
+     if (poly.type == "LINE")
+      await JSRuntime.InvokeAsync<int>("removeLine",poly.id);
+     else
+      await JSRuntime.InvokeAsync<int>("removePoly",poly.id);
+    }
+   }
+
+   foreach(Poly poly1 in retPOL)
+   {
+    //If this is true, this poly is new.
+    if (polys.FirstOrDefault(p => p.id == poly1.id) == null)
+    {
+     POICategory? category = categories.FirstOrDefault(c => c.name == poly1.category);
+     if (category == null)
+      category = new POICategory();
+     poly1.color = category.hexbg;
+     if (poly1.type == "LINE")
+      await JSRuntime.InvokeAsync<int>("createLine",poly1);
+     else
+      await JSRuntime.InvokeAsync<int>("createPoly",poly1);
+    }
+   }
+
+   polys = retPOL;
+   
 
   }
   catch(Exception e)

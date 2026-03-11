@@ -1,0 +1,154 @@
+﻿@using Apollo2.Shared.Sys.Data.Map
+@using Apollo2.Sys
+@using Apollo2.Sys.Windows
+@using Apollo2.Sys.Data
+@using Apollo2.Shared.Sys.Data.Incidents
+@using Apollo2.Shared.Sys.User
+@using Apollo2.Shared.Sys.Data.Units
+@inject Incidents _incsService
+@inject Units _unitsService
+@inject HttpClient _http
+
+<div class="ROOT">
+
+ <div class="HEADER">
+  <div class="TITLE">
+   Map Object List
+  </div>
+  <div class="CONTROLS">
+   <button class="DISCARD" @onclick="discard">CLOSE</button>
+  </div>
+ </div>
+
+ <div class="BODY">
+  <table class="TABLE">
+   @foreach (Poly cat in polys)
+   {
+    <tr class="ID">
+      <td class="NAME">
+       @cat.name
+      </td>
+     
+     <td class="BG">
+       @cat.type
+     </td>
+     <td class="FG">
+      @cat.category
+     </td>
+     <td class="Save">
+      <button class="DELETE" @onclick="() => delete(cat.id)">DELETE</button>
+     </td>
+    </tr>
+   }
+  </table>
+ </div>
+</div>
+
+@code {
+
+ [Parameter]
+ public required Window para { get; set; }
+
+ private List<Poly> polys
+ {
+  get
+  {
+   if (!para.memory.ContainsKey("POLYS"))
+    return new List<Poly>();
+
+   return ((List<Poly>)para.memory["POLYS"]);
+  }
+  set
+  {
+   para.memory["POLYS"] = value;
+  }
+ }
+
+ private void discard()
+ {
+  WindowManager.closePage(para);
+ }
+
+
+
+ protected override async Task OnParametersSetAsync()
+ {
+  base.OnParametersSet();
+  WindowManager.WindowChanged += handleUpdate;
+
+  if (para.firstRender)
+   await FIRSTRENDER();
+
+
+ }
+
+ private void handleUpdate(windowEvent we)
+ {
+  StateHasChanged();
+  if (we.window == para && (we.type != windowEvent.WindowEventType.opened || we.type != windowEvent.WindowEventType.maximized))
+  {
+   WindowManager.WindowChanged -= handleUpdate;
+  }
+ }
+
+ private async Task FIRSTRENDER()
+ {
+  para.firstRender = false;
+
+  try
+  {
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/get/poly", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    return;
+   }
+   List<Poly>? retCAT = await response.Content.ReadFromJsonAsync<List<Poly>>();
+   if (retCAT == null)
+   {
+    Console.WriteLine("retCAT null.");
+    return;
+   }
+   polys = retCAT;
+
+   StateHasChanged();
+  }
+  catch (Exception e)
+  {
+   Console.WriteLine(e);
+  }
+
+  StateHasChanged();
+ }
+
+ private async Task delete(int id)
+ {
+  try
+  {
+   var response = await _http.PostAsJsonAsync<UserSession>(SystemInformation.sysURL + $"/API/Map/Map/delete/poly/{id}", SystemInformation.session);
+   if (!response.IsSuccessStatusCode)
+   {
+    Console.WriteLine("Response not 200(OK).");
+    return;
+   }
+   List<Poly>? retCAT = await response.Content.ReadFromJsonAsync<List<Poly>>();
+   if (retCAT == null)
+   {
+    Console.WriteLine("retCAT null.");
+    return;
+   }
+   polys = retCAT;
+
+   StateHasChanged();
+  }
+  catch (Exception e)
+  {
+   Console.WriteLine(e);
+  }
+  polys.Remove(polys.FirstOrDefault(p => p.id == id) ?? new Poly());
+  StateHasChanged();
+
+ }
+
+
+}

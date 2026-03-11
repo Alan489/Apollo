@@ -57,7 +57,7 @@
   @foreach (Unit unit in activeUnits.Where(u => u.type == "Unit" && u.status != "Out Of Service"))
   {
     
-   <div class=@(unit.incident == null ? "UnitContainer" : "UnitAttachedContainer")>
+   <div class=@(unit.incident == null ? (unit.status == "Busy" ? "UnitBusyContainer" : "UnitContainer") : "UnitAttachedContainer")>
     <div class="UnitHeader">
      @unit.unit
     </div>
@@ -67,24 +67,27 @@
     @if (unit.incident != null)
     {
      <div class="UnitAssignment">
+       <h3>
+         RESPOND TO INCIDENT
+       </h3>
       <div class="IncidentLocation">
-       @unit.incident.location
+       Address : @(string.IsNullOrEmpty(unit.incident.location) ? "Not Available." : unit.incident.location)
       </div>
       <div class="IncidentLocation">
-       @unit.incident.unit_number
+       Location Detail : @(string.IsNullOrEmpty(unit.incident.unit_number) ? "Not Available." : unit.incident.unit_number)
       </div>
       <div class="IncidentType">
-       @unit.incident.call_type
+       Type : @(string.IsNullOrEmpty(unit.incident.call_type) ? "Not Available." : unit.incident.call_type)
       </div>
       <div class="IncidentDetails">
-       @unit.incident.call_details
+       Details : @(string.IsNullOrEmpty(unit.incident.call_details) ? "Not Available." : unit.incident.call_details)
       </div>
      </div>
     }
     else
     {
      <div class="UnitInService">
-      Unit In Service
+      @(unit.status == "Busy" ? "Unit is Busy" : "Unit In Service")
      </div>
     }
    </div>

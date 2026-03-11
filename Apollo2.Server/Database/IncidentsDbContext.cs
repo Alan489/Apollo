@@ -151,7 +151,7 @@ namespace Apollo2.Server.Database
      await mysqlconnection.OpenAsync();
 
      using var command = mysqlconnection.CreateCommand();
-     command.CommandText = @"SELECT call_type FROM incident_types;";
+     command.CommandText = @"SELECT call_type FROM incident_types WHERE active = 'Y';";
 
      using var reader = await command.ExecuteReaderAsync();
      while (reader.Read())
@@ -166,9 +166,87 @@ namespace Apollo2.Server.Database
    }
    catch (Exception ex)
    {
+    Console.WriteLine(ex);
    }
 
    return null;
+  }
+
+  public async Task<List<TypeModification>?> getIncidentModificationTypes()
+  {
+   try
+   {
+    List<TypeModification> ret = new List<TypeModification>();
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+     command.CommandText = @"SELECT call_type, active FROM incident_types;";
+
+     using var reader = await command.ExecuteReaderAsync();
+     while (reader.Read())
+     {
+      TypeModification modification = new TypeModification();
+      if (!reader.IsDBNull(0))
+       modification.Type = reader.GetString(0);
+      if (!reader.IsDBNull(1))
+       modification.Active = reader.GetChar(1);
+
+      ret.Add(modification);
+     }
+     return ret;
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex);
+   }
+
+   return null;
+  }
+
+  public async Task createIncidentType(string type)
+  {
+   try
+   {
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+     command.CommandText = @"INSERT INTO incident_types (call_type) VALUES (@type)";
+     command.Parameters.AddWithValue("type", type);
+     command.ExecuteNonQuery();
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex);
+   }
+
+  }
+
+  public async Task updateIncidentType(string type, char val)
+  {
+   try
+   {
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+     Console.WriteLine($"{type} {val}");
+     using var command = mysqlconnection.CreateCommand();
+     command.CommandText = @"UPDATE incident_types SET active = @val WHERE call_type = @type";
+     command.Parameters.AddWithValue("val", val);
+     command.Parameters.AddWithValue("type", type);
+     command.ExecuteNonQuery();
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex);
+   }
+
   }
 
   public async Task<List<string>?> getIncidentDispoTypes()
@@ -181,7 +259,7 @@ namespace Apollo2.Server.Database
      await mysqlconnection.OpenAsync();
 
      using var command = mysqlconnection.CreateCommand();
-     command.CommandText = @"SELECT disposition FROM incident_disposition_types;";
+     command.CommandText = @"SELECT disposition FROM incident_disposition_types WHERE active = 'Y';";
 
      using var reader = await command.ExecuteReaderAsync();
      while (reader.Read())
@@ -196,9 +274,86 @@ namespace Apollo2.Server.Database
    }
    catch (Exception ex)
    {
+    Console.WriteLine(ex);
    }
 
    return null;
+  }
+  public async Task<List<DispositionModification>?> getIncidentDispoModificationTypes()
+  {
+   try
+   {
+    List<DispositionModification> ret = new List<DispositionModification>();
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+     command.CommandText = @"SELECT disposition, active FROM incident_disposition_types;";
+
+     using var reader = await command.ExecuteReaderAsync();
+     while (reader.Read())
+     {
+      DispositionModification dm = new DispositionModification();
+      if (!reader.IsDBNull(0))
+       dm.Disposition = reader.GetString(0);
+      if (!reader.IsDBNull(1))
+       dm.Active = reader.GetChar(1);
+
+      ret.Add(dm);
+     }
+     return ret;
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex);
+   }
+
+   return null;
+  }
+
+  public async Task createDispoType(string type)
+  {
+   try
+   {
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+     command.CommandText = @"INSERT INTO incident_disposition_types (disposition) VALUES (@type)";
+     command.Parameters.AddWithValue("type", type);
+     command.ExecuteNonQuery();
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex);
+   }
+
+  }
+
+  public async Task updateDispoType(string type, char val)
+  {
+   try
+   {
+    using (var mysqlconnection = new MySqlConnection(Program.connectionString))
+    {
+     await mysqlconnection.OpenAsync();
+
+     using var command = mysqlconnection.CreateCommand();
+     command.CommandText = @"UPDATE incident_disposition_types SET active = @val WHERE disposition = @type";
+     command.Parameters.AddWithValue("val", val);
+     command.Parameters.AddWithValue("type", type);
+     command.ExecuteNonQuery();
+    }
+   }
+   catch (Exception ex)
+   {
+    Console.WriteLine(ex);
+   }
+
   }
 
   public async Task<List<Incident>> getIncidentsByDay(DateTime dt)

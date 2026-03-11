@@ -21,21 +21,7 @@
   flex: 1;
   min-height: 0px;
   height: 100%;
-}
-
-button {
-  line-height: 1em;
-  border: 1px solid #888;
-  border-radius: 8px;
-  background-color: #3a3a3a;
-  color: #888;
-  font-family: "Noto Sans Mono", monospace;
-  margin: 5px;
-}
-
-button:hover {
-  background-color: #555;
-  color: #999;
+  overflow-y:auto;
 }
 
 ::-webkit-scrollbar {
@@ -54,7 +40,57 @@ button:hover {
     background: #555;
   }
 
-.Unauthorized{
-  color: #A55;
-  margin: 5px;
+.ManagementSection {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 10px;
+  margin: 10px;
+  border-top: 3px solid black;
+  border-left: 3px solid black;
+  border-right: 3px solid #777;
+  border-bottom: 3px solid #777;
+  background-color: #333;
+  border-radius: 10px 0px 10px 0px;
 }
+
+.ManagementHeader {
+  font-size: 1.25em;
+  border-bottom: 2px solid #777;
+  border-right: 2px solid #777;
+  box-shadow: black 3px 3px;
+  border-radius: 0px 0px 10px 0px;
+  margin-bottom: 10px;
+}
+
+.ManagementOptionUnauthorized {
+  color: #A55;
+}
+
+
+.ManagementOption {
+  margin-bottom: 15px;
+  background-color: #3a3a3a;
+  border-radius: 10px 0px 0px 10px;
+  padding-left: 15px;
+  padding-top: 2px;
+  padding-bottom: 5px;
+  box-shadow: #5A5 -2px 0px;
+}
+
+.Unauthorized {
+  box-shadow: #A55 -2px 0px;
+}
+
+.ManagmentOptionButtonContainer button {
+  line-height: 1em;
+  border: 1px solid #888;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #888;
+  font-family: "Noto Sans Mono", monospace;
+}
+  .ManagmentOptionButtonContainer button:hover {
+    background-color: #555;
+    color: #999;
+  }

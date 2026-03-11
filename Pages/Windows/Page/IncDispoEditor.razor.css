@@ -14,11 +14,12 @@
   font-size: 2em;
   text-shadow: 1px 1px 2px black;
 }
-.TITLE{
-  flex:1;
+
+.TITLE {
+  flex: 1;
 }
 
-.CONTROLS{
+.CONTROLS {
   margin-top: -13px;
 }
 
@@ -48,21 +49,18 @@
 .BODY {
   padding-left: 25px;
   display: flex;
-  flex:1;
-  overflow-y:auto;
-  flex-direction:column;
+  flex: 1;
+  overflow-y: auto;
+  flex-direction: column;
 }
 
 .TABLE {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 1em;
 }
 
-  .ID:hover {
-    background-color: #777;
-    
-  }
+.ID:hover {
+  background-color: #777;
+}
 
 
 .NEWCAT {
@@ -70,8 +68,7 @@
   background-color: #555;
 }
 
-.ColorDisplay{
-  
+.ColorDisplay {
 }
 
 input[type=checkbox] {
@@ -110,16 +107,73 @@ input[type='checkbox']:checked {
     background: #555;
   }
 
-  input {
-    width: 32%;
+input {
+  width: 32%;
+  background-color: #333;
+  border-radius: 7px;
+  color: white;
+}
+
+  input[type=text] {
+    width: 95%;
     background-color: #333;
     border-radius: 7px;
     color: white;
   }
 
-input[type=text] {
-  width: 95%;
-  background-color: #333;
-  border-radius: 7px;
-  color: white;
+.ACTIVEY, .ACTIVEN {
+  width: 7em;
 }
+
+  .ACTIVEY .SLIDERBASE {
+    background-color: #5A5;
+    float: right;
+    margin-right: 8px;
+  }
+
+  .ACTIVEN .SLIDERBASE {
+    background-color: #A55;
+    float: right;
+    margin-right: 8px;
+  }
+
+.SLIDERBASE {
+  height: 1em;
+  width: 2em;
+  border-radius: 3px;
+  transition: background-color ease-in-out .2s;
+}
+
+.SLIDERBUTTON {
+  height: 1em;
+  width: 1em;
+  border-radius: 3px 3px 3px 3px;
+  background-color: #BBB;
+  position: relative;
+  transition: left ease-in-out .2s;
+}
+
+.ACTIVEY .SLIDERBUTTON {
+  left: 1em;
+}
+
+.ACTIVEN .SLIDERBUTTON {
+  left: 0em;
+}
+
+.NEW button {
+  align-content: center;
+  transition: background-color ease-in-out .2s;
+  outline: none;
+  line-height: 1em;
+  border: 1px solid #595;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+  color: #595;
+  font-family: "Noto Sans Mono", monospace;
+  margin-left: 10px;
+}
+
+  .NEW button:hover {
+    background: rgba(50, 75, 50, .5);
+  }
